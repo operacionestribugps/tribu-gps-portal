@@ -218,9 +218,8 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
       <div class="section-tag">Información del crédito</div>
       <div class="info-grid">
         <div class="info-card"><div class="info-lbl">ID Crédito</div><div class="info-val" id="info-id">—</div></div>
-        <div class="info-card"><div class="info-lbl">Tasa EA</div><div class="info-val" id="info-tasa">—</div></div>
-        <div class="info-card"><div class="info-lbl">Plazo total</div><div class="info-val" id="info-plazo">—</div></div>
         <div class="info-card"><div class="info-lbl">Estado</div><div class="info-val" id="info-estado">—</div></div>
+        <div class="info-card"><div class="info-lbl">Plazo total</div><div class="info-val" id="info-plazo">—</div></div>
       </div>
 
       <!-- Movements -->
@@ -440,8 +439,8 @@ function renderDashboard(d){
   document.getElementById('np-date').textContent = d.proximaFecha || '—';
 
   document.getElementById('info-id').textContent = d.creditId || '—';
-  document.getElementById('info-tasa').textContent = (d.tasaEA||0) + '% EA';
-  document.getElementById('info-plazo').textContent = (d.plazoTotal||0) + ' quincenas';
+  var unidadPlazo = (d.periodicidad === 'mensual') ? ' meses' : ' quincenas';
+  document.getElementById('info-plazo').textContent = (d.plazoTotal||0) + unidadPlazo;
   document.getElementById('info-estado').textContent = d.estado || '—';
 
   updateCountdown(d.proximaFechaISO);
