@@ -212,7 +212,7 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
         </div>
       </div>
 
-      <button class="btn-pay" onclick="openPayModal()">💳 Pagar ahora con Epayco</button>
+      <button class="btn-pay" onclick="openPayModal()">💳 Pagar ahora con ePayco</button>
 
       <!-- Loan info -->
       <div class="section-tag">Información del crédito</div>
@@ -285,7 +285,7 @@ var FIREBASE_CONFIG = {
 var N8N_API_BASE = 'https://tribugps.pikapod.net/webhook';
 // Endpoints esperados:
 //   GET  N8N_API_BASE/estado-cuenta?cedula=XXXX   → datos del crédito + movimientos
-//   POST N8N_API_BASE/iniciar-pago                 → crea transacción Epayco, devuelve checkout URL
+//   POST N8N_API_BASE/iniciar-pago                 → crea transacción ePayco, devuelve checkout URL
 // =====================================================
 
 firebase.initializeApp(FIREBASE_CONFIG);
@@ -531,7 +531,7 @@ async function confirmPayment(){
   }
 
   var btn = document.getElementById('btn-confirm-pay');
-  btn.disabled = true; btn.textContent = 'Conectando con Epayco...';
+  btn.disabled = true; btn.textContent = 'Conectando con ePayco...';
 
   try{
     var res = await fetch(N8N_API_BASE + '/iniciar-pago', {
