@@ -35,6 +35,18 @@
     margin-bottom: 24px;
   }
   #status { color: #888880; font-size: 14px; line-height: 1.6; }
+  #btnPortal {
+    display: none;
+    margin-top: 24px;
+    padding: 12px 28px;
+    background: #E09018;
+    color: #0C0C0C;
+    font-weight: bold;
+    font-size: 13px;
+    text-decoration: none;
+    border-radius: 8px;
+    letter-spacing: 0.5px;
+  }
 </style>
 </head>
 <body>
@@ -42,6 +54,7 @@
     <div class="brand">Tribu GPS</div>
     <div class="tagline">Motor Fintech</div>
     <p id="status">Abriendo tu pago seguro...</p>
+    <a id="btnPortal" href="https://tribu-gps-portal.vercel.app/index.html">Ir al portal de pagos</a>
   </div>
 
   <script>
@@ -87,14 +100,16 @@
       // deliberadamente prudente y nunca dice "no se pago" con certeza.
       statusEl.textContent = 'Confirmando tu pago, un momento...';
 
-      fetch('https://secure.epayco.co/validation/v1/reference/' + refPayco, {
-        headers: { 'Content-Type': 'application/json' }
-      })
+      // Reemplaza esta URL por la Production URL real de tu nodo
+      // "CP1. Recibir Consulta de Pago" en n8n (mismo procedimiento que
+      // usaste para IP1 y WH1: abrir el nodo -> copiar Production URL).
+      const URL_CONSULTA_PAGO = 'https://tribugps.pikapod.net/webhook/consultar-pago';
+
+      fetch(URL_CONSULTA_PAGO + '?ref_payco=' + encodeURIComponent(refPayco))
         .then(r => r.json())
         .then(data => {
-          console.log('Respuesta de validacion ePayco:', data);
-          const info = (data && data.data) ? data.data : data;
-          const respuesta = info && (info.x_response || info.respuesta || info.estado);
+          console.log('Respuesta de consulta de pago (via n8n):', data);
+          const respuesta = data && data.respuesta;
 
           if (respuesta === 'Aceptada') {
             statusEl.textContent = 'Tu pago fue aprobado. En unos minutos recibirás la confirmación por WhatsApp.';
@@ -105,11 +120,13 @@
           } else {
             statusEl.textContent = 'Tu pago está siendo confirmado. Recibirás un mensaje de WhatsApp en cuanto se verifique.';
           }
+          document.getElementById('btnPortal').style.display = 'inline-block';
         })
         .catch(() => {
-          // Si esta consulta falla (ej. CORS, o cambia el endpoint), no
-          // asumimos que el pago fallo — el webhook es la fuente real.
+          // Si esta consulta falla, no asumimos que el pago fallo —
+          // el webhook (WH1) es la fuente real de la confirmacion.
           statusEl.textContent = 'Tu pago está siendo confirmado. Recibirás un mensaje de WhatsApp en cuanto se verifique.';
+          document.getElementById('btnPortal').style.display = 'inline-block';
         });
 
     } else {
