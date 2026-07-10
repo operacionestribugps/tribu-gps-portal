@@ -47,14 +47,14 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('session');
+    const refPayco = params.get('ref_payco');
     const statusEl = document.getElementById('status');
 
     // Cambia a false cuando ePayco confirme que tu cuenta ya esta en modo produccion
     const MODO_PRUEBAS = true;
 
-    if (!sessionId) {
-      statusEl.textContent = 'Enlace de pago invalido o incompleto. Contacta a Tribu GPS.';
-    } else {
+    if (sessionId) {
+      // Caso 1: llegada inicial con ?session=... -> abrir el checkout
       const checkout = ePayco.checkout.configure({
         sessionId: sessionId,
         type: 'onpage',
@@ -72,11 +72,48 @@
           statusEl.textContent = 'Hubo un error al procesar el pago. Intenta de nuevo o contacta a Tribu GPS.';
         },
         onClosed: () => {
-          // El usuario cerró el checkout; no se requiere accion aqui.
+          // El usuario cerro el checkout; no se requiere accion aqui.
         }
       });
 
       checkout.open();
+
+    } else if (refPayco) {
+      // Caso 2: ePayco redirige de vuelta aqui despues de completar el pago,
+      // con ?ref_payco=... en vez de ?session=...
+      // OJO: esta pagina es solo para mostrarle algo al cliente. La
+      // confirmacion REAL y definitiva del pago siempre llega por el
+      // webhook (WH1 en n8n), no desde aqui — por eso el mensaje es
+      // deliberadamente prudente y nunca dice "no se pago" con certeza.
+      statusEl.textContent = 'Confirmando tu pago, un momento...';
+
+      fetch('https://secure.epayco.co/validation/v1/reference/' + refPayco, {
+        headers: { 'Content-Type': 'application/json' }
+      })
+        .then(r => r.json())
+        .then(data => {
+          console.log('Respuesta de validacion ePayco:', data);
+          const info = (data && data.data) ? data.data : data;
+          const respuesta = info && (info.x_response || info.respuesta || info.estado);
+
+          if (respuesta === 'Aceptada') {
+            statusEl.textContent = 'Tu pago fue aprobado. En unos minutos recibirás la confirmación por WhatsApp.';
+          } else if (respuesta === 'Pendiente') {
+            statusEl.textContent = 'Tu pago está pendiente de confirmación. Te avisaremos por WhatsApp en cuanto se confirme.';
+          } else if (respuesta === 'Rechazada' || respuesta === 'Fallida') {
+            statusEl.textContent = 'Tu pago no pudo procesarse. Intenta de nuevo o contacta a Tribu GPS.';
+          } else {
+            statusEl.textContent = 'Tu pago está siendo confirmado. Recibirás un mensaje de WhatsApp en cuanto se verifique.';
+          }
+        })
+        .catch(() => {
+          // Si esta consulta falla (ej. CORS, o cambia el endpoint), no
+          // asumimos que el pago fallo — el webhook es la fuente real.
+          statusEl.textContent = 'Tu pago está siendo confirmado. Recibirás un mensaje de WhatsApp en cuanto se verifique.';
+        });
+
+    } else {
+      statusEl.textContent = 'Enlace de pago invalido o incompleto. Contacta a Tribu GPS.';
     }
   </script>
 </body>
