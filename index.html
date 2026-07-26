@@ -79,6 +79,11 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
 .bc-bar{height:100%;background:linear-gradient(90deg,var(--gold3),var(--gold));border-radius:4px;transition:width .6s ease;}
 .bc-progress-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px;font-family:'Roboto Mono',monospace;}
 
+/* Mora alert */
+.mora-alert{background:rgba(208,80,80,.1);border:1px solid rgba(208,80,80,.35);border-radius:14px;padding:16px 18px;margin-bottom:14px;}
+.mora-alert-title{font-size:13px;font-weight:900;color:var(--red);margin-bottom:4px;letter-spacing:.2px;}
+.mora-alert-text{font-size:12px;color:var(--wh);line-height:1.6;}
+
 /* Next payment card */
 .next-pay-card{background:var(--c1);border:1px solid var(--b1);border-radius:14px;padding:18px;margin-bottom:14px;}
 .np-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
@@ -202,9 +207,16 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
         </div>
       </div>
 
+      <!-- Mora alert (oculta si no aplica) -->
+      <div class="mora-alert" id="mora-alert" style="display:none">
+        <div class="mora-alert-title">⚠️ Tienes cuotas vencidas</div>
+        <div class="mora-alert-text" id="mora-alert-text"></div>
+      </div>
+
       <!-- Next payment -->
       <div class="next-pay-card">
         <div class="np-row"><span class="np-lbl">Próxima cuota</span><span class="np-val gold" id="np-amount">$0</span></div>
+        <div class="np-row"><span class="np-lbl">Seguro incluido</span><span class="np-val" id="np-seguro">$0</span></div>
         <div class="np-row"><span class="np-lbl">Fecha de vencimiento</span><span class="np-val" id="np-date">—</span></div>
         <div class="np-countdown">
           <div class="cd-box"><div class="cd-num" id="cd-days">0</div><div class="cd-lbl">días</div></div>
@@ -436,7 +448,22 @@ function renderDashboard(d){
   document.getElementById('bal-cuotas').textContent = (d.cuotasPagadas||0) + '/' + (d.cuotasTotales||0) + ' cuotas';
 
   document.getElementById('np-amount').textContent = '$' + (d.cuotaActual||0).toLocaleString('es-CO');
+  document.getElementById('np-seguro').textContent = '$' + (d.seguroProximaCuota||0).toLocaleString('es-CO');
   document.getElementById('np-date').textContent = d.proximaFecha || '—';
+
+  var moraBox = document.getElementById('mora-alert');
+  if(d.enMora){
+    moraBox.style.display = 'block';
+    var dias = d.diasMora || 0;
+    var texto = 'Llevas ' + dias + (dias === 1 ? ' día' : ' días') + ' en mora';
+    if((d.cuotasVencidasCount || 0) > 1){
+      texto += ' por ' + d.cuotasVencidasCount + ' cuotas vencidas';
+    }
+    texto += '. Deuda total pendiente: $' + (d.deudaAcumuladaFormato || '0') + '. Ponte al día para evitar el inicio de gestión de cobro.';
+    document.getElementById('mora-alert-text').textContent = texto;
+  } else {
+    moraBox.style.display = 'none';
+  }
 
   document.getElementById('info-id').textContent = d.creditId || '—';
   var unidadPlazo = (d.periodicidad === 'mensual') ? ' meses' : ' quincenas';
