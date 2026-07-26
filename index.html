@@ -216,7 +216,6 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
       <!-- Next payment -->
       <div class="next-pay-card">
         <div class="np-row"><span class="np-lbl">Próxima cuota</span><span class="np-val gold" id="np-amount">$0</span></div>
-        <div class="np-row"><span class="np-lbl">Seguro incluido</span><span class="np-val" id="np-seguro">$0</span></div>
         <div class="np-row"><span class="np-lbl">Fecha de vencimiento</span><span class="np-val" id="np-date">—</span></div>
         <div class="np-countdown">
           <div class="cd-box"><div class="cd-num" id="cd-days">0</div><div class="cd-lbl">días</div></div>
@@ -448,7 +447,6 @@ function renderDashboard(d){
   document.getElementById('bal-cuotas').textContent = (d.cuotasPagadas||0) + '/' + (d.cuotasTotales||0) + ' cuotas';
 
   document.getElementById('np-amount').textContent = '$' + (d.cuotaActual||0).toLocaleString('es-CO');
-  document.getElementById('np-seguro').textContent = '$' + (d.seguroProximaCuota||0).toLocaleString('es-CO');
   document.getElementById('np-date').textContent = d.proximaFecha || '—';
 
   var moraBox = document.getElementById('mora-alert');
