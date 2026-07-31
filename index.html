@@ -526,9 +526,13 @@ document.getElementById('pay-amount').addEventListener('input', checkSurplus);
 
 function checkSurplus(){
   var amount = parseFloat(document.getElementById('pay-amount').value) || 0;
-  var minCuota = creditData ? (creditData.cuotaActual || 0) : 0;
+  // Umbral real que ya calcula el backend (EC5): cuota actual + todas
+  // las vencidas adicionales + hasta 2 cuotas futuras de anticipo.
+  // Antes se usaba una aproximacion (cuotaActual * 1.05) que no
+  // coincidia con lo que WH6i realmente hace en silencio.
+  var umbral = creditData ? (creditData.umbralSinPreguntar || creditData.cuotaActual || 0) : 0;
   var surplusBox = document.getElementById('surplus-strategy');
-  if(amount > minCuota * 1.05){ // 5% de margen para evitar disparar por redondeos
+  if(amount > umbral){
     surplusBox.style.display = 'block';
   } else {
     surplusBox.style.display = 'none';
@@ -544,13 +548,13 @@ function selectStrategy(strategy){
 
 async function confirmPayment(){
   var amount = parseFloat(document.getElementById('pay-amount').value) || 0;
-  var minCuota = creditData ? (creditData.cuotaActual || 0) : 0;
+  var umbral = creditData ? (creditData.umbralSinPreguntar || creditData.cuotaActual || 0) : 0;
 
   if(amount <= 0){
     alert('Ingresa un monto válido.');
     return;
   }
-  if(amount > minCuota * 1.05 && !selectedStrategy){
+  if(amount > umbral && !selectedStrategy){
     alert('Por favor elige qué hacer con el excedente: reducir plazo o reducir cuota.');
     return;
   }
