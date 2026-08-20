@@ -2,136 +2,634 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tribu GPS — Pagar cuota</title>
-<script src="https://checkout.epayco.co/checkout-v2.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mi crédito — vamo</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#080D14">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #000000;
-    color: #F4F2EE;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    margin: 0;
-    text-align: center;
-  }
-  .box { max-width: 380px; padding: 24px; }
-  .brand {
-    font-size: 12px;
-    font-weight: bold;
-    letter-spacing: 4px;
-    color: #F4F2EE;
-    text-transform: uppercase;
-  }
-  .tagline {
-    font-family: monospace;
-    font-size: 9px;
-    letter-spacing: 3px;
-    color: #E09018;
-    text-transform: uppercase;
-    margin-top: 4px;
-    margin-bottom: 24px;
-  }
-  #status { color: #888880; font-size: 14px; line-height: 1.6; }
-  #btnPortal {
-    display: none;
-    margin-top: 24px;
-    padding: 12px 28px;
-    background: #E09018;
-    color: #0C0C0C;
-    font-weight: bold;
-    font-size: 13px;
-    text-decoration: none;
-    border-radius: 8px;
-    letter-spacing: 0.5px;
-  }
+/* ===== VAMO · BRAND CONFIG =========================================
+   Toda la identidad vive en estas variables. Para publicar la misma
+   plataforma con la marca de un comercializador, se cambian SOLO
+   estos valores y el logo (img con data:image/svg+xml) — nada mas.
+   --gold* = color de acento de la marca (hoy coral vamo #F26B45)
+   --blue* = color secundario / estados informativos
+   =================================================================== */
+:root{
+  --bg:#080D14; --c1:#0D141D; --c2:#131C26; --c3:#1B2632;
+  --gold:#F26B45; --gold2:#FF8A62; --gold3:#C4482A;
+  --gold-dim:rgba(242,107,69,.07); --gold-dim2:rgba(242,107,69,.13);
+  --gold-border:rgba(242,107,69,.28);
+  --wh:#F0F3F6; --muted:#8593A2; --muted2:#55626F;
+  --red:#E05C5C; --green:#4FBF8B; --blue:#4FC3B8;
+  --b1:rgba(255,255,255,.07); --b2:rgba(255,255,255,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{background:#080D14;}
+body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-height:100vh;
+  background-image:radial-gradient(ellipse 80% 40% at 50% -5%,rgba(242,107,69,.06) 0%,transparent 55%);}
+.shell{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+.hero{padding:32px 22px 20px;text-align:center;position:relative;}
+.hero::after{content:'';position:absolute;bottom:0;left:10%;right:10%;height:1px;background:linear-gradient(to right,transparent,var(--gold-border),transparent);}
+.logo-hero{width:64px;height:64px;object-fit:contain;margin:0 auto 10px;display:block;}
+.hero-brand{font-size:24px;font-weight:900;letter-spacing:-1.1px;text-transform:lowercase;}
+.hero-sub{font-family:'Roboto Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-top:3px;}
+
+/* ===== LOGIN VIEW ===== */
+#view-login{padding:24px 22px;flex:1;display:none;flex-direction:column;}
+#view-login.active{display:flex;}
+.login-title{font-size:22px;font-weight:900;letter-spacing:-.5px;margin-bottom:6px;text-align:center;}
+.login-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:28px;line-height:1.6;}
+.fi{margin-bottom:15px;}
+.fi label{display:block;font-size:10px;font-weight:600;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;font-family:'Roboto Mono',monospace;}
+.fi input{width:100%;background:var(--c1);border:1px solid var(--b1);border-radius:9px;color:var(--wh);font-family:'Roboto',sans-serif;font-size:15px;padding:13px 14px;outline:none;transition:border-color .2s,box-shadow .2s;}
+.fi input:focus{border-color:var(--gold-border);box-shadow:0 0 0 3px var(--gold-dim);}
+.fi input::placeholder{color:var(--muted2);}
+.btn-primary{width:100%;padding:15px;background:linear-gradient(135deg,var(--gold3),var(--gold),var(--gold2));border:none;border-radius:10px;color:#000;font-size:15px;font-weight:900;cursor:pointer;transition:all .2s;letter-spacing:.4px;box-shadow:0 4px 20px rgba(242,107,69,.3);margin-top:6px;}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(242,107,69,.45);}
+.btn-primary:disabled{background:#1a1a1a;color:var(--muted2);cursor:not-allowed;box-shadow:none;}
+.link-row{text-align:center;margin-top:18px;}
+.link-row a{color:var(--gold);font-size:12px;text-decoration:none;cursor:pointer;font-family:'Roboto Mono',monospace;letter-spacing:.3px;}
+.link-row a:hover{text-decoration:underline;}
+.divider-or{display:flex;align-items:center;gap:12px;margin:22px 0;}
+.divider-or::before,.divider-or::after{content:'';flex:1;height:1px;background:var(--b1);}
+.divider-or span{font-size:10px;color:var(--muted2);font-family:'Roboto Mono',monospace;letter-spacing:1px;}
+.err-box{background:rgba(208,80,80,.08);border:1px solid rgba(208,80,80,.25);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--red);margin-bottom:14px;display:none;}
+.err-box.show{display:block;}
+.ok-box{background:rgba(95,184,122,.08);border:1px solid rgba(95,184,122,.25);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--green);margin-bottom:14px;display:none;}
+.ok-box.show{display:block;}
+.back-link{font-size:12px;color:var(--muted);cursor:pointer;margin-bottom:18px;display:inline-flex;align-items:center;gap:6px;}
+.back-link:hover{color:var(--wh);}
+
+/* ===== DASHBOARD VIEW ===== */
+#view-dash{padding:0;flex:1;display:none;flex-direction:column;}
+#view-dash.active{display:flex;}
+.dash-topbar{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b1);}
+.dash-greet{font-size:14px;font-weight:700;}
+.dash-greet span{color:var(--gold);}
+.dash-logout{font-family:'Roboto Mono',monospace;font-size:10px;color:var(--muted);cursor:pointer;letter-spacing:1px;padding:6px 11px;border:1px solid var(--b1);border-radius:20px;}
+.dash-logout:hover{border-color:var(--gold-border);color:var(--gold);}
+
+.dash-body{padding:20px 22px 100px;flex:1;}
+
+/* Balance card */
+.balance-card{background:linear-gradient(135deg,rgba(242,107,69,.1),rgba(242,107,69,.03));border:1px solid var(--gold-border);border-radius:16px;padding:22px;margin-bottom:18px;text-align:center;}
+.bc-label{font-family:'Roboto Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px;}
+.bc-amount{font-size:38px;font-weight:900;letter-spacing:-1.5px;}
+.bc-sub{font-size:12px;color:var(--muted);margin-top:4px;}
+.bc-progress-wrap{margin-top:16px;}
+.bc-bar-bg{background:rgba(255,255,255,.07);border-radius:4px;height:7px;overflow:hidden;}
+.bc-bar{height:100%;background:linear-gradient(90deg,var(--gold3),var(--gold));border-radius:4px;transition:width .6s ease;}
+.bc-progress-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px;font-family:'Roboto Mono',monospace;}
+
+/* Mora alert */
+.mora-alert{background:rgba(208,80,80,.1);border:1px solid rgba(208,80,80,.35);border-radius:14px;padding:16px 18px;margin-bottom:14px;}
+.mora-alert-title{font-size:13px;font-weight:900;color:var(--red);margin-bottom:4px;letter-spacing:.2px;}
+.mora-alert-text{font-size:12px;color:var(--wh);line-height:1.6;}
+
+/* Next payment card */
+.next-pay-card{background:var(--c1);border:1px solid var(--b1);border-radius:14px;padding:18px;margin-bottom:14px;}
+.np-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.np-row:last-child{margin-bottom:0;}
+.np-lbl{font-size:12px;color:var(--muted);}
+.np-val{font-family:'Roboto Mono',monospace;font-size:14px;font-weight:600;}
+.np-val.gold{color:var(--gold);}
+.np-countdown{display:flex;gap:8px;margin-top:14px;}
+.cd-box{flex:1;background:var(--c2);border-radius:8px;padding:10px 6px;text-align:center;}
+.cd-num{font-size:20px;font-weight:900;color:var(--gold);font-family:'Roboto Mono',monospace;}
+.cd-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+
+/* Pay button */
+.btn-pay{width:100%;padding:16px;background:linear-gradient(135deg,var(--gold3),var(--gold),var(--gold2));border:none;border-radius:12px;color:#000;font-size:15px;font-weight:900;cursor:pointer;transition:all .2s;letter-spacing:.4px;box-shadow:0 4px 20px rgba(242,107,69,.3);margin-bottom:18px;}
+.btn-pay:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(242,107,69,.45);}
+
+/* Movements list */
+.section-tag{font-family:'Roboto Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;margin-top:8px;}
+.mov-item{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--b1);}
+.mov-item:last-child{border-bottom:none;}
+.mov-icon{width:36px;height:36px;border-radius:10px;background:rgba(95,184,122,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;}
+.mov-icon.pending{background:rgba(242,107,69,.1);}
+.mov-info{flex:1;}
+.mov-title{font-size:13px;font-weight:500;}
+.mov-date{font-size:11px;color:var(--muted);margin-top:1px;}
+.mov-amount{font-family:'Roboto Mono',monospace;font-size:14px;font-weight:700;color:var(--green);}
+.mov-empty{text-align:center;padding:30px 0;color:var(--muted);font-size:13px;}
+
+/* Loan info */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.info-card{background:var(--c1);border:1px solid var(--b1);border-radius:11px;padding:13px 14px;}
+.info-lbl{font-size:10px;color:var(--muted);font-family:'Roboto Mono',monospace;letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;}
+.info-val{font-size:15px;font-weight:700;}
+
+/* Loading */
+.load-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:18px;}
+.load-overlay.on{display:flex;}
+.spinner{width:36px;height:36px;border:2px solid rgba(242,107,69,.15);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.load-msg{font-family:'Roboto Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+
+/* Modal: surplus payment strategy */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:150;align-items:flex-end;justify-content:center;}
+.modal-overlay.on{display:flex;}
+.modal-sheet{background:var(--c1);border-radius:20px 20px 0 0;border:1px solid var(--b1);border-bottom:none;width:100%;max-width:480px;padding:24px 22px 32px;animation:slideUp .25s ease;}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-title{font-size:17px;font-weight:900;margin-bottom:6px;}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+.strategy-opt{background:var(--c2);border:1.5px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all .18s;}
+.strategy-opt:hover{border-color:var(--b2);}
+.strategy-opt.sel{border-color:var(--gold-border);background:rgba(242,107,69,.07);}
+.so-title{font-size:13px;font-weight:700;margin-bottom:3px;}
+.so-desc{font-size:11px;color:var(--muted);line-height:1.5;}
+.modal-btns{display:flex;gap:10px;margin-top:18px;}
+.btn-modal-cancel{flex:1;padding:13px;background:none;border:1px solid var(--b1);border-radius:10px;color:var(--muted);font-size:13px;cursor:pointer;}
+.btn-modal-ok{flex:2;padding:13px;background:linear-gradient(135deg,var(--gold3),var(--gold));border:none;border-radius:10px;color:#000;font-size:13px;font-weight:700;cursor:pointer;}
+.amount-input-wrap{margin-bottom:16px;}
+
+/* Bottom nav (simple) */
+.bottom-note{text-align:center;padding:16px;font-size:11px;color:var(--muted2);}
 </style>
 </head>
 <body>
-  <div class="box">
-    <div class="brand">Tribu GPS</div>
-    <div class="tagline">Motor Fintech</div>
-    <p id="status">Abriendo tu pago seguro...</p>
-    <a id="btnPortal" href="https://tribu-gps-portal.vercel.app/index.html">Ir al portal de pagos</a>
+<div class="shell">
+
+  <div class="hero">
+    <img class="logo-hero" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23F26B45%22%20stroke-width%3D%229%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M25%2028L47%2050L25%2072%22%20opacity%3D%220.38%22%2F%3E%3Cpath%20d%3D%22M53%2028L75%2050L53%2072%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E" alt="vamo">
+    <div class="hero-brand">vamo</div>
+    <div class="hero-sub">Tu crédito, al día</div>
   </div>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get('session');
-    const refPayco = params.get('ref_payco');
-    const statusEl = document.getElementById('status');
+  <!-- ============ VISTA: LOGIN ============ -->
+  <div id="view-login" class="active">
+    <div id="login-form-wrap">
+      <div class="login-title">Ingresa a tu cuenta</div>
+      <div class="login-sub">Consulta tu saldo, próxima cuota y realiza pagos</div>
+      <div class="err-box" id="login-err"></div>
+      <div class="fi">
+        <label>Número de cédula</label>
+        <input id="login-cedula" placeholder="1012345678" type="text" autocomplete="username">
+      </div>
+      <div class="fi">
+        <label>Contraseña</label>
+        <input id="login-pass" placeholder="••••••••" type="password" autocomplete="current-password">
+      </div>
+      <button class="btn-primary" onclick="doLogin()" id="btn-login">Ingresar</button>
+      <div class="link-row"><a onclick="showView('forgot')">¿Olvidaste tu contraseña?</a></div>
+    </div>
 
-    // Cambia a false cuando ePayco confirme que tu cuenta ya esta en modo produccion
-    const MODO_PRUEBAS = false;
+    <div id="forgot-form-wrap" style="display:none">
+      <div class="back-link" onclick="showView('login')">← Volver a iniciar sesión</div>
+      <div class="login-title">Recuperar contraseña</div>
+      <div class="login-sub">Ingresa tu cédula. Te enviaremos un enlace al correo registrado con tu crédito.</div>
+      <div class="err-box" id="forgot-err"></div>
+      <div class="ok-box" id="forgot-ok"></div>
+      <div class="fi">
+        <label>Número de cédula</label>
+        <input id="forgot-cedula" placeholder="1012345678" type="text">
+      </div>
+      <button class="btn-primary" onclick="doForgotPassword()" id="btn-forgot">Enviar enlace de recuperación</button>
+    </div>
+  </div>
 
-    if (sessionId) {
-      // Caso 1: llegada inicial con ?session=... -> abrir el checkout
-      const checkout = ePayco.checkout.configure({
-        sessionId: sessionId,
-        type: 'onpage',
-        test: MODO_PRUEBAS
-      });
+  <!-- ============ VISTA: DASHBOARD ============ -->
+  <div id="view-dash">
+    <div class="dash-topbar">
+      <div class="dash-greet">Hola, <span id="dash-name">—</span></div>
+      <div class="dash-logout" onclick="doLogout()">SALIR</div>
+    </div>
 
-      checkout.setHooks({
-        onCreated: () => {
-          statusEl.textContent = 'Completa tu pago en la ventana que se abrió.';
-        },
-        onResponse: (response) => {
-          statusEl.textContent = 'Pago procesado. Ya puedes cerrar esta ventana.';
-        },
-        onErrors: (error) => {
-          statusEl.textContent = 'Hubo un error al procesar el pago. Intenta de nuevo o contacta a Tribu GPS.';
-        },
-        onClosed: () => {
-          // El usuario cerro el checkout; no se requiere accion aqui.
-        }
-      });
+    <div class="dash-body">
 
-      checkout.open();
+      <!-- Balance -->
+      <div class="balance-card">
+        <div class="bc-label">Saldo pendiente</div>
+        <div class="bc-amount" id="bal-amount">$0</div>
+        <div class="bc-sub" id="bal-sub">de un total de $0</div>
+        <div class="bc-progress-wrap">
+          <div class="bc-bar-bg"><div class="bc-bar" id="bal-bar" style="width:0%"></div></div>
+          <div class="bc-progress-lbl"><span id="bal-pct">0% pagado</span><span id="bal-cuotas">0/0 cuotas</span></div>
+        </div>
+      </div>
 
-    } else if (refPayco) {
-      // Caso 2: ePayco redirige de vuelta aqui despues de completar el pago,
-      // con ?ref_payco=... en vez de ?session=...
-      // OJO: esta pagina es solo para mostrarle algo al cliente. La
-      // confirmacion REAL y definitiva del pago siempre llega por el
-      // webhook (WH1 en n8n), no desde aqui — por eso el mensaje es
-      // deliberadamente prudente y nunca dice "no se pago" con certeza.
-      statusEl.textContent = 'Confirmando tu pago, un momento...';
+      <!-- Mora alert (oculta si no aplica) -->
+      <div class="mora-alert" id="mora-alert" style="display:none">
+        <div class="mora-alert-title">⚠️ Tienes cuotas vencidas</div>
+        <div class="mora-alert-text" id="mora-alert-text"></div>
+      </div>
 
-      // Reemplaza esta URL por la Production URL real de tu nodo
-      // "CP1. Recibir Consulta de Pago" en n8n (mismo procedimiento que
-      // usaste para IP1 y WH1: abrir el nodo -> copiar Production URL).
-      const URL_CONSULTA_PAGO = 'https://tribugps.pikapod.net/webhook/consultar-pago';
+      <!-- Next payment -->
+      <div class="next-pay-card">
+        <div class="np-row"><span class="np-lbl">Próxima cuota</span><span class="np-val gold" id="np-amount">$0</span></div>
+        <div class="np-row"><span class="np-lbl">Fecha de vencimiento</span><span class="np-val" id="np-date">—</span></div>
+        <div class="np-countdown">
+          <div class="cd-box"><div class="cd-num" id="cd-days">0</div><div class="cd-lbl">días</div></div>
+          <div class="cd-box"><div class="cd-num" id="cd-hrs">0</div><div class="cd-lbl">horas</div></div>
+        </div>
+      </div>
 
-      fetch(URL_CONSULTA_PAGO + '?ref_payco=' + encodeURIComponent(refPayco))
-        .then(r => r.json())
-        .then(data => {
-          console.log('Respuesta de consulta de pago (via n8n):', data);
-          const respuesta = data && data.respuesta;
+      <button class="btn-pay" onclick="openPayModal()">💳 Pagar ahora con ePayco</button>
 
-          if (respuesta === 'Aceptada') {
-            statusEl.textContent = 'Tu pago fue aprobado. En unos minutos recibirás la confirmación por WhatsApp.';
-          } else if (respuesta === 'Pendiente') {
-            statusEl.textContent = 'Tu pago está pendiente de confirmación. Te avisaremos por WhatsApp en cuanto se confirme.';
-          } else if (respuesta === 'Rechazada' || respuesta === 'Fallida') {
-            statusEl.textContent = 'Tu pago no pudo procesarse. Intenta de nuevo o contacta a Tribu GPS.';
-          } else {
-            statusEl.textContent = 'Tu pago está siendo confirmado. Recibirás un mensaje de WhatsApp en cuanto se verifique.';
-          }
-          document.getElementById('btnPortal').style.display = 'inline-block';
-        })
-        .catch(() => {
-          // Si esta consulta falla, no asumimos que el pago fallo —
-          // el webhook (WH1) es la fuente real de la confirmacion.
-          statusEl.textContent = 'Tu pago está siendo confirmado. Recibirás un mensaje de WhatsApp en cuanto se verifique.';
-          document.getElementById('btnPortal').style.display = 'inline-block';
-        });
+      <!-- Loan info -->
+      <div class="section-tag">Información del crédito</div>
+      <div class="info-grid">
+        <div class="info-card"><div class="info-lbl">ID Crédito</div><div class="info-val" id="info-id">—</div></div>
+        <div class="info-card"><div class="info-lbl">Estado</div><div class="info-val" id="info-estado">—</div></div>
+        <div class="info-card"><div class="info-lbl">Plazo total</div><div class="info-val" id="info-plazo">—</div></div>
+      </div>
 
-    } else {
-      statusEl.textContent = 'Enlace de pago invalido o incompleto. Contacta a Tribu GPS.';
+      <!-- Movements -->
+      <div class="section-tag">Movimientos recientes</div>
+      <div id="mov-list">
+        <div class="mov-empty">Cargando movimientos...</div>
+      </div>
+
+    </div>
+
+    <div class="bottom-note">vamo es una marca operada por Tribu GPS SAS · NIT 901.356.553-8</div>
+  </div>
+
+</div>
+
+<!-- LOADING OVERLAY -->
+<div class="load-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="load-msg" id="load-msg">CARGANDO...</div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="pay-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">Realizar pago</div>
+    <div class="modal-sub">Tu cuota mínima es <strong id="modal-min-cuota">$0</strong>. Puedes pagar más si deseas.</div>
+
+    <div class="amount-input-wrap">
+      <div class="fi" style="margin:0">
+        <label>Monto a pagar (COP)</label>
+        <input id="pay-amount" type="number" placeholder="0">
+      </div>
+    </div>
+
+    <div id="surplus-strategy" style="display:none">
+      <div class="login-sub" style="margin-bottom:12px">Estás pagando más de tu cuota mínima. ¿Qué prefieres hacer con el excedente?</div>
+      <div class="strategy-opt" id="opt-plazo" onclick="selectStrategy('plazo')">
+        <div class="so-title">Reducir el plazo</div>
+        <div class="so-desc">Tu cuota se mantiene igual, pero terminas de pagar más rápido.</div>
+      </div>
+      <div class="strategy-opt" id="opt-cuota" onclick="selectStrategy('cuota')">
+        <div class="so-title">Reducir la cuota</div>
+        <div class="so-desc">Tu plazo se mantiene igual, pero pagas menos en cada cuota futura.</div>
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="closePayModal()">Cancelar</button>
+      <button class="btn-modal-ok" onclick="confirmPayment()" id="btn-confirm-pay">Continuar a pago</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================================================
+// ⚠️  CONFIGURAR ANTES DE DESPLEGAR
+// =====================================================
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB4uShrVDGxSfMBY8bglJ-MkbGIGF4KUaE",
+  authDomain: "tribugps-portal.firebaseapp.com",
+  projectId: "tribugps-portal"
+};
+var N8N_API_BASE = 'https://tribugps.pikapod.net/webhook';
+// Endpoints esperados:
+//   GET  N8N_API_BASE/estado-cuenta?cedula=XXXX   → datos del crédito + movimientos
+//   POST N8N_API_BASE/iniciar-pago                 → crea transacción ePayco, devuelve checkout URL
+// =====================================================
+
+firebase.initializeApp(FIREBASE_CONFIG);
+var auth = firebase.auth();
+var currentCedula = null;
+var creditData = null;
+var selectedStrategy = null;
+
+// ───────────────────────────────────────────────────────
+// NAVIGATION
+// ───────────────────────────────────────────────────────
+function showView(view){
+  document.getElementById('login-form-wrap').style.display = view === 'login' ? 'block' : 'none';
+  document.getElementById('forgot-form-wrap').style.display = view === 'forgot' ? 'block' : 'none';
+}
+
+// ───────────────────────────────────────────────────────
+// AUTH — Login
+// ───────────────────────────────────────────────────────
+async function doLogin(){
+  var cedula = document.getElementById('login-cedula').value.trim();
+  var pass   = document.getElementById('login-pass').value;
+  var errBox = document.getElementById('login-err');
+  errBox.classList.remove('show');
+
+  if(!cedula || !pass){
+    errBox.textContent = 'Ingresa tu cédula y contraseña.';
+    errBox.classList.add('show');
+    return;
+  }
+
+  var btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Ingresando...';
+
+  try{
+    // Buscamos el email REAL asociado a esta cédula (registrado en el formulario de crédito)
+    var lookupRes = await fetch(N8N_API_BASE + '/estado-cuenta?cedula=' + encodeURIComponent(cedula));
+    var lookupData = await lookupRes.json().catch(function(){ return {}; });
+
+    if(!lookupData || !lookupData.email){
+      throw { code: 'auth/user-not-found' };
     }
-  </script>
+
+    await auth.signInWithEmailAndPassword(lookupData.email, pass);
+    currentCedula = cedula;
+    localStorage.setItem('tribu_cedula', cedula);
+    await loadDashboard();
+  }catch(err){
+    var msg = 'Cédula o contraseña incorrecta.';
+    if(err.code === 'auth/too-many-requests') msg = 'Demasiados intentos. Espera unos minutos.';
+    errBox.textContent = msg;
+    errBox.classList.add('show');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Ingresar';
+  }
+}
+
+// ───────────────────────────────────────────────────────
+// AUTH — Forgot password
+// ───────────────────────────────────────────────────────
+async function doForgotPassword(){
+  var cedula = document.getElementById('forgot-cedula').value.trim();
+  var errBox = document.getElementById('forgot-err');
+  var okBox  = document.getElementById('forgot-ok');
+  errBox.classList.remove('show'); okBox.classList.remove('show');
+
+  if(!cedula){
+    errBox.textContent = 'Ingresa tu número de cédula.';
+    errBox.classList.add('show');
+    return;
+  }
+
+  var btn = document.getElementById('btn-forgot');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+
+  // actionCodeSettings: controla la redirección desde el código,
+  // sin depender del campo "URL de acción" de la consola de Firebase.
+  // Esto funciona siempre, sin importar el plan (Spark/Blaze).
+  var actionCodeSettings = {
+    url: window.location.origin + '/index.html',
+    handleCodeInApp: false
+  };
+
+  try{
+    // Buscamos el email REAL asociado a esta cédula (no usamos email sintético)
+    var lookupRes = await fetch(N8N_API_BASE + '/estado-cuenta?cedula=' + encodeURIComponent(cedula));
+    var lookupData = await lookupRes.json().catch(function(){ return {}; });
+
+    if(lookupData && lookupData.email){
+      await auth.sendPasswordResetEmail(lookupData.email, actionCodeSettings);
+    }
+    okBox.textContent = 'Si tu cédula está registrada, recibirás un correo con el enlace de recuperación.';
+    okBox.classList.add('show');
+  }catch(err){
+    // Por seguridad, no revelamos si la cédula existe o no
+    okBox.textContent = 'Si tu cédula está registrada, recibirás un correo con el enlace de recuperación.';
+    okBox.classList.add('show');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Enviar enlace de recuperación';
+  }
+}
+
+function doLogout(){
+  auth.signOut().then(function(){
+    localStorage.removeItem('tribu_cedula');
+    document.getElementById('view-dash').classList.remove('active');
+    document.getElementById('view-login').classList.add('active');
+    showView('login');
+    document.getElementById('login-cedula').value = '';
+    document.getElementById('login-pass').value = '';
+  });
+}
+
+// ───────────────────────────────────────────────────────
+// DASHBOARD — Cargar estado de cuenta desde n8n
+// ───────────────────────────────────────────────────────
+async function loadDashboard(){
+  showLoading('CARGANDO TU ESTADO DE CUENTA...');
+  try{
+    var res = await fetch(N8N_API_BASE + '/estado-cuenta?cedula=' + encodeURIComponent(currentCedula));
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    creditData = await res.json();
+
+    document.getElementById('view-login').classList.remove('active');
+    document.getElementById('view-dash').classList.add('active');
+    renderDashboard(creditData);
+  }catch(err){
+    console.error(err);
+    var errBox = document.getElementById('login-err');
+    errBox.textContent = 'No pudimos cargar tu información. Intenta de nuevo en unos minutos.';
+    errBox.classList.add('show');
+  }finally{
+    hideLoading();
+  }
+}
+
+function renderDashboard(d){
+  document.getElementById('dash-name').textContent = (d.nombre || '').split(' ')[0];
+
+  var saldo = d.saldoPendiente || 0;
+  var total = d.montoTotal || 1;
+  var pctPagado = Math.round((1 - saldo/total) * 100);
+
+  document.getElementById('bal-amount').textContent = '$' + saldo.toLocaleString('es-CO');
+  document.getElementById('bal-sub').textContent = 'de un total de $' + total.toLocaleString('es-CO');
+  document.getElementById('bal-bar').style.width = pctPagado + '%';
+  document.getElementById('bal-pct').textContent = pctPagado + '% pagado';
+  document.getElementById('bal-cuotas').textContent = (d.cuotasPagadas||0) + '/' + (d.cuotasTotales||0) + ' cuotas';
+
+  document.getElementById('np-amount').textContent = '$' + (d.cuotaActual||0).toLocaleString('es-CO');
+  document.getElementById('np-date').textContent = d.proximaFecha || '—';
+
+  var moraBox = document.getElementById('mora-alert');
+  if(d.enMora){
+    moraBox.style.display = 'block';
+    var dias = d.diasMora || 0;
+    var texto = 'Llevas ' + dias + (dias === 1 ? ' día' : ' días') + ' en mora';
+    if((d.cuotasVencidasCount || 0) > 1){
+      texto += ' por ' + d.cuotasVencidasCount + ' cuotas vencidas';
+    }
+    texto += '. Deuda total pendiente: $' + (d.deudaAcumuladaFormato || '0') + '. Ponte al día para evitar el inicio de gestión de cobro.';
+    document.getElementById('mora-alert-text').textContent = texto;
+  } else {
+    moraBox.style.display = 'none';
+  }
+
+  document.getElementById('info-id').textContent = d.creditId || '—';
+  var unidadPlazo = (d.periodicidad === 'mensual') ? ' meses' : ' quincenas';
+  document.getElementById('info-plazo').textContent = (d.plazoTotal||0) + unidadPlazo;
+  document.getElementById('info-estado').textContent = d.estado || '—';
+
+  updateCountdown(d.proximaFechaISO);
+
+  renderMovements(d.movimientos || []);
+
+  document.getElementById('modal-min-cuota').textContent = '$' + (d.cuotaActual||0).toLocaleString('es-CO');
+  document.getElementById('pay-amount').value = d.cuotaActual || 0;
+}
+
+function updateCountdown(isoDate){
+  if(!isoDate) return;
+  var target = new Date(isoDate).getTime();
+  var now = Date.now();
+  var diff = Math.max(0, target - now);
+  var days = Math.floor(diff / 86400000);
+  var hrs  = Math.floor((diff % 86400000) / 3600000);
+  document.getElementById('cd-days').textContent = days;
+  document.getElementById('cd-hrs').textContent = hrs;
+}
+
+function renderMovements(movs){
+  var wrap = document.getElementById('mov-list');
+  if(!movs.length){
+    wrap.innerHTML = '<div class="mov-empty">Aún no tienes movimientos registrados.</div>';
+    return;
+  }
+  var html = '';
+  movs.forEach(function(m){
+    var icon = m.estado === 'pendiente' ? '⏳' : '✓';
+    var iconClass = m.estado === 'pendiente' ? 'pending' : '';
+    html += '<div class="mov-item">' +
+      '<div class="mov-icon ' + iconClass + '">' + icon + '</div>' +
+      '<div class="mov-info">' +
+        '<div class="mov-title">' + (m.descripcion || 'Pago de cuota') + '</div>' +
+        '<div class="mov-date">' + (m.fecha || '') + '</div>' +
+      '</div>' +
+      '<div class="mov-amount">$' + (m.monto||0).toLocaleString('es-CO') + '</div>' +
+    '</div>';
+  });
+  wrap.innerHTML = html;
+}
+
+// ───────────────────────────────────────────────────────
+// PAYMENT MODAL
+// ───────────────────────────────────────────────────────
+function openPayModal(){
+  document.getElementById('pay-modal').classList.add('on');
+  checkSurplus();
+}
+function closePayModal(){
+  document.getElementById('pay-modal').classList.remove('on');
+  selectedStrategy = null;
+  document.getElementById('opt-plazo').classList.remove('sel');
+  document.getElementById('opt-cuota').classList.remove('sel');
+}
+document.getElementById('pay-amount').addEventListener('input', checkSurplus);
+
+function checkSurplus(){
+  var amount = parseFloat(document.getElementById('pay-amount').value) || 0;
+  // Umbral real que ya calcula el backend (EC5): cuota actual + todas
+  // las vencidas adicionales + hasta 2 cuotas futuras de anticipo.
+  // Antes se usaba una aproximacion (cuotaActual * 1.05) que no
+  // coincidia con lo que WH6i realmente hace en silencio.
+  var umbral = creditData ? (creditData.umbralSinPreguntar || creditData.cuotaActual || 0) : 0;
+  var surplusBox = document.getElementById('surplus-strategy');
+  if(amount > umbral){
+    surplusBox.style.display = 'block';
+  } else {
+    surplusBox.style.display = 'none';
+    selectedStrategy = null;
+  }
+}
+
+function selectStrategy(strategy){
+  selectedStrategy = strategy;
+  document.getElementById('opt-plazo').classList.toggle('sel', strategy === 'plazo');
+  document.getElementById('opt-cuota').classList.toggle('sel', strategy === 'cuota');
+}
+
+async function confirmPayment(){
+  var amount = parseFloat(document.getElementById('pay-amount').value) || 0;
+  var umbral = creditData ? (creditData.umbralSinPreguntar || creditData.cuotaActual || 0) : 0;
+
+  if(amount <= 0){
+    alert('Ingresa un monto válido.');
+    return;
+  }
+  if(amount > umbral && !selectedStrategy){
+    alert('Por favor elige qué hacer con el excedente: reducir plazo o reducir cuota.');
+    return;
+  }
+
+  var btn = document.getElementById('btn-confirm-pay');
+  btn.disabled = true; btn.textContent = 'Conectando con ePayco...';
+
+  try{
+    var res = await fetch(N8N_API_BASE + '/iniciar-pago', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        cedula: currentCedula,
+        creditId: creditData.creditId,
+        monto: amount,
+        estrategiaExcedente: selectedStrategy || 'ninguna'
+      })
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    var result = await res.json();
+
+    if(result.checkoutUrl){
+      window.location.href = result.checkoutUrl;
+    } else {
+      throw new Error('No se recibió URL de pago');
+    }
+  }catch(err){
+    console.error(err);
+    alert('No pudimos iniciar el pago. Intenta de nuevo.');
+    btn.disabled = false; btn.textContent = 'Continuar a pago';
+  }
+}
+
+// ───────────────────────────────────────────────────────
+// LOADING HELPERS
+// ───────────────────────────────────────────────────────
+function showLoading(msg){
+  document.getElementById('loading').classList.add('on');
+  document.getElementById('load-msg').textContent = msg || 'CARGANDO...';
+}
+function hideLoading(){
+  document.getElementById('loading').classList.remove('on');
+}
+
+// ───────────────────────────────────────────────────────
+// AUTO-LOGIN si ya hay sesión activa (al refrescar la página)
+// ───────────────────────────────────────────────────────
+auth.onAuthStateChanged(function(user){
+  if(user && !creditData){
+    // La cédula se guarda en localStorage al hacer login exitoso (ver doLogin).
+    // Como ahora usamos el email REAL del cliente, ya no podemos derivar la
+    // cédula del email — por eso la persistimos localmente.
+    var savedCedula = localStorage.getItem('tribu_cedula');
+    if(savedCedula){
+      currentCedula = savedCedula;
+      loadDashboard();
+    } else {
+      auth.signOut();
+    }
+  }
+});
+
+// Refrescar countdown cada minuto
+setInterval(function(){
+  if(creditData && creditData.proximaFechaISO){
+    updateCountdown(creditData.proximaFechaISO);
+  }
+}, 60000);
+</script>
 </body>
 </html>
