@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi portafolio — vamo</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#080D14">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+<style>
+/* ===== VAMO · BRAND CONFIG =========================================
+   Mismos tokens que el portal de clientes. Para publicar con la marca
+   de un comercializador se cambian SOLO estos valores y el logo.
+   --gold* = acento de marca (coral vamo)
+   --blue  = rendimiento REALIZADO (uso semantico, no decorativo:
+             distingue de un vistazo capital recuperado vs ganancia)
+   =================================================================== */
+:root{
+  --bg:#080D14; --c1:#0D141D; --c2:#131C26; --c3:#1B2632;
+  --gold:#F26B45; --gold2:#FF8A62; --gold3:#C4482A;
+  --gold-dim:rgba(242,107,69,.07); --gold-dim2:rgba(242,107,69,.13);
+  --gold-border:rgba(242,107,69,.28);
+  --wh:#F0F3F6; --muted:#8593A2; --muted2:#55626F;
+  --red:#E05C5C; --green:#4FBF8B; --blue:#4FC3B8;
+  --blue-dim:rgba(79,195,184,.09); --blue-border:rgba(79,195,184,.28);
+  --b1:rgba(255,255,255,.07); --b2:rgba(255,255,255,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{background:#080D14;}
+body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-height:100vh;
+  background-image:radial-gradient(ellipse 80% 40% at 50% -5%,rgba(242,107,69,.06) 0%,transparent 55%);}
+.shell{max-width:540px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+.hero{padding:32px 22px 20px;text-align:center;position:relative;}
+.hero::after{content:'';position:absolute;bottom:0;left:10%;right:10%;height:1px;background:linear-gradient(to right,transparent,var(--gold-border),transparent);}
+.logo-hero{width:64px;height:64px;object-fit:contain;margin:0 auto 10px;display:block;}
+.hero-brand{font-size:24px;font-weight:900;letter-spacing:-1.1px;text-transform:lowercase;}
+.hero-sub{font-family:'Roboto Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-top:3px;}
+
+/* ===== LOGIN ===== */
+#view-login{padding:24px 22px;flex:1;display:none;flex-direction:column;}
+#view-login.active{display:flex;}
+.login-title{font-size:22px;font-weight:900;letter-spacing:-.5px;margin-bottom:6px;text-align:center;}
+.login-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:28px;line-height:1.6;}
+.fi{margin-bottom:15px;}
+.fi label{display:block;font-size:10px;font-weight:600;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;font-family:'Roboto Mono',monospace;}
+.fi input{width:100%;background:var(--c1);border:1px solid var(--b1);border-radius:9px;color:var(--wh);font-family:'Roboto',sans-serif;font-size:15px;padding:13px 14px;outline:none;transition:border-color .2s,box-shadow .2s;}
+.fi input:focus{border-color:var(--gold-border);box-shadow:0 0 0 3px var(--gold-dim);}
+.fi input::placeholder{color:var(--muted2);}
+.btn-primary{width:100%;padding:15px;background:linear-gradient(135deg,var(--gold3),var(--gold),var(--gold2));border:none;border-radius:10px;color:#000;font-size:15px;font-weight:900;cursor:pointer;transition:all .2s;letter-spacing:.4px;box-shadow:0 4px 20px rgba(242,107,69,.3);margin-top:6px;}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(242,107,69,.45);}
+.btn-primary:disabled{background:#1a1a1a;color:var(--muted2);cursor:not-allowed;box-shadow:none;}
+.err-box{background:rgba(224,92,92,.08);border:1px solid rgba(224,92,92,.25);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--red);margin-bottom:14px;display:none;}
+.err-box.show{display:block;}
+
+/* ===== DASHBOARD ===== */
+#view-dash{padding:0;flex:1;display:none;flex-direction:column;}
+#view-dash.active{display:flex;}
+.dash-topbar{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b1);}
+.dash-greet{font-size:14px;font-weight:700;}
+.dash-greet span{color:var(--gold);}
+.dash-logout{font-family:'Roboto Mono',monospace;font-size:10px;color:var(--muted);cursor:pointer;letter-spacing:1px;padding:6px 11px;border:1px solid var(--b1);border-radius:20px;background:none;}
+.dash-logout:hover{border-color:var(--gold-border);color:var(--gold);}
+.dash-body{padding:20px 22px 60px;flex:1;}
+
+/* Capital card */
+.cap-card{background:linear-gradient(135deg,rgba(242,107,69,.1),rgba(242,107,69,.03));border:1px solid var(--gold-border);border-radius:16px;padding:22px;margin-bottom:14px;text-align:center;}
+.cc-label{font-family:'Roboto Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px;}
+.cc-amount{font-size:36px;font-weight:900;letter-spacing:-1.5px;}
+.cc-sub{font-size:12px;color:var(--muted);margin-top:4px;}
+
+/* ===== SIGNATURE: barra de recuperacion de capital =====
+   Un inversionista no quiere un porcentaje suelto: quiere ver
+   cuanto de su plata ya volvio, cuanto de eso es ganancia, y
+   cuanto sigue en la calle. Los 3 segmentos son ese mapa. */
+.recov{margin-top:18px;}
+.recov-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,.06);}
+.rb-cap{background:linear-gradient(90deg,var(--gold3),var(--gold));transition:width .6s ease;}
+.rb-yield{background:var(--blue);transition:width .6s ease;}
+.recov-legend{display:flex;justify-content:space-between;gap:8px;margin-top:12px;}
+.rl-item{flex:1;text-align:left;}
+.rl-dot{width:7px;height:7px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:middle;}
+.rl-lbl{font-size:9.5px;color:var(--muted);font-family:'Roboto Mono',monospace;letter-spacing:.4px;text-transform:uppercase;}
+.rl-val{font-size:14px;font-weight:700;margin-top:3px;font-family:'Roboto Mono',monospace;}
+
+/* KPI grid */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.kpi{background:var(--c1);border:1px solid var(--b1);border-radius:12px;padding:14px 15px;}
+.kpi-lbl{font-size:9.5px;color:var(--muted);font-family:'Roboto Mono',monospace;letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px;}
+.kpi-val{font-size:19px;font-weight:900;letter-spacing:-.4px;}
+.kpi-val.blue{color:var(--blue);}
+.kpi-val.gold{color:var(--gold);}
+.kpi-foot{font-size:10.5px;color:var(--muted2);margin-top:4px;}
+
+.section-tag{font-family:'Roboto Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:22px 0 12px;}
+
+/* Deuda con Tribu GPS -- es un pasivo del inversionista, no una
+   retencion: el cliente le paga el 100% a el, y el nos gira el servicio. */
+.debt-card{background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:14px;padding:16px 17px;margin-bottom:6px;}
+.debt-amount{font-size:26px;font-weight:900;letter-spacing:-.8px;color:var(--gold);margin:4px 0 2px;}
+.btn-debt{width:100%;margin-top:13px;padding:12px;background:var(--gold);border:none;border-radius:9px;color:#000;font-size:13.5px;font-weight:900;cursor:pointer;font-family:'Roboto',sans-serif;letter-spacing:.3px;transition:all .2s;}
+.btn-debt:hover{background:var(--gold2);transform:translateY(-1px);}
+.btn-debt:disabled{background:var(--c3);color:var(--muted2);cursor:default;transform:none;}
+.liq-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);font-size:12px;}
+.liq-item:last-child{border-bottom:none;}
+.liq-date{color:var(--muted);font-family:'Roboto Mono',monospace;font-size:11px;}
+.liq-amt{font-family:'Roboto Mono',monospace;font-weight:700;color:var(--green);}
+
+/* Alerta de mora en portafolio */
+.mora-alert{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.35);border-radius:14px;padding:14px 16px;margin-bottom:16px;}
+.mora-alert-title{font-size:13px;font-weight:900;color:var(--red);margin-bottom:4px;}
+.mora-alert-text{font-size:12px;color:var(--wh);line-height:1.6;}
+
+/* Vehicle card */
+.veh{background:var(--c1);border:1px solid var(--b1);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;transition:border-color .2s,transform .2s;}
+.veh:hover{border-color:var(--gold-border);transform:translateY(-1px);}
+.veh-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;}
+.veh-who{font-size:15px;font-weight:700;letter-spacing:-.2px;}
+.veh-id{font-family:'Roboto Mono',monospace;font-size:10.5px;color:var(--muted);margin-top:2px;letter-spacing:.4px;}
+.pill{font-family:'Roboto Mono',monospace;font-size:9px;letter-spacing:.8px;text-transform:uppercase;padding:5px 9px;border-radius:20px;white-space:nowrap;font-weight:600;}
+.pill.ok{background:rgba(79,191,139,.12);color:var(--green);border:1px solid rgba(79,191,139,.3);}
+.pill.mora{background:rgba(224,92,92,.12);color:var(--red);border:1px solid rgba(224,92,92,.32);}
+.pill.done{background:rgba(133,147,162,.12);color:var(--muted);border:1px solid var(--b2);}
+.veh-bar{display:flex;height:7px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06);margin-bottom:9px;}
+.veh-meta{display:flex;justify-content:space-between;font-family:'Roboto Mono',monospace;font-size:10.5px;color:var(--muted);}
+.veh-meta b{color:var(--wh);font-weight:600;}
+
+/* ===== DETALLE ===== */
+#view-detail{padding:0;flex:1;display:none;flex-direction:column;}
+#view-detail.active{display:flex;}
+.back-link{font-size:12px;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:none;border:none;font-family:'Roboto',sans-serif;padding:0;}
+.back-link:hover{color:var(--wh);}
+.det-head{padding:18px 22px;border-bottom:1px solid var(--b1);}
+.det-title{font-size:20px;font-weight:900;letter-spacing:-.5px;margin-top:12px;}
+.det-id{font-family:'Roboto Mono',monospace;font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.5px;}
+.det-body{padding:20px 22px 60px;}
+.row-list{background:var(--c1);border:1px solid var(--b1);border-radius:12px;padding:4px 15px;margin-bottom:16px;}
+.row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--b1);gap:12px;}
+.row:last-child{border-bottom:none;}
+.row-lbl{font-size:12.5px;color:var(--muted);}
+.row-val{font-family:'Roboto Mono',monospace;font-size:13.5px;font-weight:600;text-align:right;}
+.row-val.blue{color:var(--blue);}
+.row-val.gold{color:var(--gold);}
+.row-val.red{color:var(--red);}
+
+/* Timeline de cuotas */
+.cuota{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--b1);}
+.cuota:last-child{border-bottom:none;}
+.cu-num{width:32px;height:32px;border-radius:9px;background:var(--c2);display:flex;align-items:center;justify-content:center;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:600;color:var(--muted);flex-shrink:0;}
+.cu-num.pagada{background:rgba(79,191,139,.12);color:var(--green);}
+.cu-num.vencida{background:rgba(224,92,92,.12);color:var(--red);}
+.cu-info{flex:1;min-width:0;}
+.cu-date{font-size:12.5px;font-weight:500;}
+.cu-split{font-size:10.5px;color:var(--muted2);margin-top:2px;font-family:'Roboto Mono',monospace;}
+.cu-amt{font-family:'Roboto Mono',monospace;font-size:13px;font-weight:700;text-align:right;white-space:nowrap;}
+.cu-amt.pagada{color:var(--green);}
+.cu-amt.pend{color:var(--muted2);}
+
+.empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;line-height:1.7;}
+.legal{padding:24px 22px 30px;text-align:center;font-size:10px;color:var(--muted2);line-height:1.6;border-top:1px solid var(--b1);}
+
+/* Loading */
+.load{display:none;position:fixed;inset:0;background:rgba(8,13,20,.94);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+.load.on{display:flex;}
+.spin{width:38px;height:38px;border:3px solid var(--b2);border-top-color:var(--gold);border-radius:50%;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.load-txt{font-family:'Roboto Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px;}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+</style>
+</head>
+<body>
+
+<div class="load" id="loading"><div class="spin"></div><div class="load-txt" id="load-txt">Cargando portafolio...</div></div>
+
+<div class="shell">
+
+  <div class="hero">
+    <img class="logo-hero" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23F26B45%22%20stroke-width%3D%229%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M25%2028L47%2050L25%2072%22%20opacity%3D%220.38%22%2F%3E%3Cpath%20d%3D%22M53%2028L75%2050L53%2072%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E" alt="vamo">
+    <div class="hero-brand">vamo</div>
+    <div class="hero-sub">Portafolio de inversión</div>
+  </div>
+
+  <!-- ===== LOGIN ===== -->
+  <div id="view-login" class="active">
+    <div class="login-title">Tu portafolio</div>
+    <div class="login-sub">Consulta los vehículos que financiaste, cuánto has recuperado y cómo va cada crédito.</div>
+    <div class="err-box" id="login-err"></div>
+    <div class="fi">
+      <label for="login-cedula">Cédula o NIT</label>
+      <input id="login-cedula" type="text" inputmode="numeric" placeholder="Sin puntos ni comas" autocomplete="username">
+    </div>
+    <div class="fi">
+      <label for="login-pass">Contraseña</label>
+      <input id="login-pass" type="password" placeholder="Tu contraseña" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" id="btn-login">Ingresar</button>
+  </div>
+
+  <!-- ===== DASHBOARD ===== -->
+  <div id="view-dash">
+    <div class="dash-topbar">
+      <div class="dash-greet">Hola, <span id="inv-nombre">—</span></div>
+      <button class="dash-logout" id="btn-logout">Salir</button>
+    </div>
+
+    <div class="dash-body">
+
+      <div class="cap-card">
+        <div class="cc-label">Capital desplegado</div>
+        <div class="cc-amount" id="k-capital">$0</div>
+        <div class="cc-sub" id="k-vehiculos">0 vehículos financiados</div>
+
+        <div class="recov">
+          <div class="recov-bar">
+            <div class="rb-cap" id="bar-cap" style="width:0%"></div>
+            <div class="rb-yield" id="bar-yield" style="width:0%"></div>
+          </div>
+          <div class="recov-legend">
+            <div class="rl-item">
+              <div class="rl-lbl"><span class="rl-dot" style="background:var(--gold)"></span>Capital de vuelta</div>
+              <div class="rl-val" id="k-cap-recuperado">$0</div>
+            </div>
+            <div class="rl-item">
+              <div class="rl-lbl"><span class="rl-dot" style="background:var(--blue)"></span>Rendimiento</div>
+              <div class="rl-val" style="color:var(--blue)" id="k-rendimiento">$0</div>
+            </div>
+            <div class="rl-item">
+              <div class="rl-lbl"><span class="rl-dot" style="background:rgba(255,255,255,.15)"></span>En la calle</div>
+              <div class="rl-val" style="color:var(--muted)" id="k-en-calle">$0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="mora-wrap"></div>
+
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-lbl">Rendimiento realizado</div>
+          <div class="kpi-val blue" id="k-roi-real">0%</div>
+          <div class="kpi-foot">Sobre capital desplegado</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Proyectado al cierre</div>
+          <div class="kpi-val gold" id="k-roi-proy">0%</div>
+          <div class="kpi-foot" id="k-roi-proy-foot">Si todos pagan completo</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Total recaudado</div>
+          <div class="kpi-val" id="k-recaudado">$0</div>
+          <div class="kpi-foot" id="k-cuotas-pagadas">0 cuotas cobradas</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Falta por cobrar</div>
+          <div class="kpi-val" id="k-por-cobrar">$0</div>
+          <div class="kpi-foot" id="k-cuotas-faltan">0 cuotas pendientes</div>
+        </div>
+      </div>
+
+      <div class="debt-card" id="debt-card">
+        <div class="kpi-lbl" style="color:var(--gold)">Le debes a Tribu GPS</div>
+        <div class="debt-amount" id="k-tribu">$0</div>
+        <div class="kpi-foot" id="k-tribu-foot">GPS, seguro y pasarela cobrados dentro de las cuotas que ya recibiste.</div>
+        <button class="btn-debt" id="btn-pagar-tribu">Pagar a Tribu GPS</button>
+      </div>
+
+      <div id="liq-wrap"></div>
+
+      <div class="section-tag">Vehículos financiados</div>
+      <div id="veh-list"></div>
+
+    </div>
+    <div class="legal">vamo es una marca operada por Tribu GPS SAS · NIT 901.356.553-8</div>
+  </div>
+
+  <!-- ===== DETALLE DE VEHÍCULO ===== -->
+  <div id="view-detail">
+    <div class="det-head">
+      <button class="back-link" id="btn-back">← Volver al portafolio</button>
+      <div class="det-title" id="d-cliente">—</div>
+      <div class="det-id" id="d-id">—</div>
+    </div>
+    <div class="det-body">
+
+      <div class="row-list">
+        <div class="row"><span class="row-lbl">Capital que financiaste</span><span class="row-val" id="d-capital">—</span></div>
+        <div class="row"><span class="row-lbl">Recaudado hasta hoy</span><span class="row-val" id="d-recaudado">—</span></div>
+        <div class="row"><span class="row-lbl">Capital de vuelta</span><span class="row-val gold" id="d-cap-rec">—</span></div>
+        <div class="row"><span class="row-lbl">Rendimiento generado</span><span class="row-val blue" id="d-rend">—</span></div>
+        <div class="row"><span class="row-lbl">Falta por cobrar</span><span class="row-val" id="d-falta">—</span></div>
+        <div class="row"><span class="row-lbl">Avance del crédito</span><span class="row-val" id="d-avance">—</span></div>
+      </div>
+
+      <div class="row-list">
+        <div class="row"><span class="row-lbl">Estado del cliente</span><span class="row-val" id="d-estado">—</span></div>
+        <div class="row"><span class="row-lbl">Frecuencia de pago</span><span class="row-val" id="d-periodicidad">—</span></div>
+        <div class="row"><span class="row-lbl">Cuotas pagadas</span><span class="row-val" id="d-cuotas">—</span></div>
+        <div class="row"><span class="row-lbl">Próxima cuota</span><span class="row-val" id="d-proxima">—</span></div>
+        <div class="row"><span class="row-lbl">Cierre del crédito</span><span class="row-val" id="d-fin">—</span></div>
+      </div>
+
+      <div class="section-tag">Historial de cuotas</div>
+      <div class="row-list" id="d-cuotas-list"></div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// =====================================================
+// CONFIGURACIÓN
+// =====================================================
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB4uShrVDGxSfMBY8bglJ-MkbGIGF4KUaE",
+  authDomain: "tribugps-portal.firebaseapp.com",
+  projectId: "tribugps-portal"
+};
+var N8N_API_BASE = 'https://tribugps.pikapod.net/webhook';
+// Endpoint esperado (falta construirlo en n8n — ver notas del chat):
+//   GET N8N_API_BASE/portafolio-inversionista?cedula=XXXX
+// =====================================================
+
+firebase.initializeApp(FIREBASE_CONFIG);
+var auth = firebase.auth();
+var currentCedula = null;
+var portafolio = null;
+
+function fmt(n){ return '$' + Math.round(n || 0).toLocaleString('es-CO'); }
+function pct(n){ return (Math.round((n || 0) * 10) / 10).toLocaleString('es-CO') + '%'; }
+function show(id){
+  ['view-login','view-dash','view-detail'].forEach(function(v){
+    document.getElementById(v).classList.toggle('active', v === id);
+  });
+  window.scrollTo(0,0);
+}
+function loading(on, txt){
+  document.getElementById('loading').classList.toggle('on', on);
+  if(txt) document.getElementById('load-txt').textContent = txt;
+}
+
+// ───────────────────────── AUTH ─────────────────────────
+async function doLogin(){
+  var cedula = document.getElementById('login-cedula').value.trim();
+  var pass   = document.getElementById('login-pass').value;
+  var errBox = document.getElementById('login-err');
+  errBox.classList.remove('show');
+
+  if(!cedula || !pass){
+    errBox.textContent = 'Ingresa tu cédula y contraseña.';
+    errBox.classList.add('show');
+    return;
+  }
+
+  var btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Ingresando...';
+
+  try{
+    var res = await fetch(N8N_API_BASE + '/portafolio-inversionista?cedula=' + encodeURIComponent(cedula));
+    var data = await res.json().catch(function(){ return {}; });
+
+    if(!data || !data.inversionista || !data.inversionista.email){
+      throw { code: 'no-encontrado' };
+    }
+
+    await auth.signInWithEmailAndPassword(data.inversionista.email, pass);
+    currentCedula = cedula;
+    localStorage.setItem('vamo_inv_cedula', cedula);
+    portafolio = data;
+    renderDashboard(data);
+    show('view-dash');
+  }catch(err){
+    var msg = 'Cédula o contraseña incorrecta.';
+    if(err.code === 'no-encontrado') msg = 'No encontramos un portafolio con esa cédula. Escríbenos si crees que es un error.';
+    if(err.code === 'auth/too-many-requests') msg = 'Demasiados intentos. Espera unos minutos.';
+    errBox.textContent = msg;
+    errBox.classList.add('show');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Ingresar';
+  }
+}
+
+function doLogout(){
+  auth.signOut();
+  localStorage.removeItem('vamo_inv_cedula');
+  currentCedula = null; portafolio = null;
+  document.getElementById('login-pass').value = '';
+  show('view-login');
+}
+
+// ─────────────────────── DASHBOARD ───────────────────────
+function renderDashboard(d){
+  var r = d.resumen || {};
+  document.getElementById('inv-nombre').textContent = (d.inversionista.nombre || '').split(' ')[0] || '—';
+
+  document.getElementById('k-capital').textContent = fmt(r.capitalDesplegado);
+  var nv = r.vehiculosFinanciados || 0;
+  document.getElementById('k-vehiculos').textContent = nv + (nv === 1 ? ' vehículo financiado' : ' vehículos financiados');
+
+  document.getElementById('k-cap-recuperado').textContent = fmt(r.capitalRecuperado);
+  document.getElementById('k-rendimiento').textContent    = fmt(r.rendimientoGenerado);
+  document.getElementById('k-en-calle').textContent       = fmt(r.capitalEnCalle);
+
+  // Barra: los 3 segmentos suman el capital desplegado + rendimiento ya ganado
+  var base = (r.capitalDesplegado || 0) + (r.rendimientoGenerado || 0);
+  if(base > 0){
+    document.getElementById('bar-cap').style.width   = ((r.capitalRecuperado || 0) / base * 100) + '%';
+    document.getElementById('bar-yield').style.width = ((r.rendimientoGenerado || 0) / base * 100) + '%';
+  }
+
+  document.getElementById('k-roi-real').textContent   = pct(r.roiRealizado);
+  document.getElementById('k-roi-proy').textContent   = pct(r.roiProyectado);
+  document.getElementById('k-recaudado').textContent  = fmt(r.totalRecaudado);
+  document.getElementById('k-por-cobrar').textContent = fmt(r.porCobrar);
+  document.getElementById('k-tribu').textContent = fmt(r.saldoConTribuGPS);
+  var btnDebt = document.getElementById('btn-pagar-tribu');
+  if((r.saldoConTribuGPS || 0) <= 0){
+    btnDebt.disabled = true;
+    btnDebt.textContent = 'Estás al día con Tribu GPS';
+    document.getElementById('k-tribu-foot').textContent = 'No tienes saldo pendiente por el servicio.';
+  } else {
+    btnDebt.disabled = false;
+    btnDebt.textContent = 'Pagar a Tribu GPS';
+    document.getElementById('k-tribu-foot').textContent =
+      'De ' + fmt(r.servicioTribuGPS) + ' generados, ya giraste ' + fmt(r.yaLiquidado) + '.';
+  }
+
+  renderLiquidaciones(d.liquidaciones || []);
+  document.getElementById('k-cuotas-pagadas').textContent = (r.cuotasPagadas || 0) + ' cuotas cobradas';
+  document.getElementById('k-cuotas-faltan').textContent  = (r.cuotasRestantes || 0) + ' cuotas pendientes';
+
+  // Alerta de mora a nivel portafolio
+  var moraWrap = document.getElementById('mora-wrap');
+  if(r.vehiculosEnMora > 0){
+    moraWrap.innerHTML =
+      '<div class="mora-alert">' +
+        '<div class="mora-alert-title">⚠ ' + r.vehiculosEnMora +
+          (r.vehiculosEnMora === 1 ? ' crédito en mora' : ' créditos en mora') + '</div>' +
+        '<div class="mora-alert-text">Hay ' + fmt(r.montoEnMora) +
+          ' vencido sin cobrar. Ábrelos abajo para ver el detalle.</div>' +
+      '</div>';
+  } else {
+    moraWrap.innerHTML = '';
+  }
+
+  renderVehiculos(d.vehiculos || []);
+}
+
+function renderLiquidaciones(ls){
+  var wrap = document.getElementById('liq-wrap');
+  if(!ls.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML =
+    '<div class="section-tag">Pagos que le has hecho a Tribu GPS</div>' +
+    '<div class="row-list">' + ls.map(function(l){
+      return '<div class="liq-item">' +
+        '<div><div>' + (l.metodo || 'Pago') + '</div>' +
+        '<div class="liq-date">' + (l.fecha || '') + '</div></div>' +
+        '<div class="liq-amt">' + fmt(l.monto) + '</div></div>';
+    }).join('') + '</div>';
+}
+
+function renderVehiculos(vs){
+  var wrap = document.getElementById('veh-list');
+  if(!vs.length){
+    wrap.innerHTML = '<div class="empty">Todavía no tienes vehículos financiados.<br>Cuando desembolses tu primer crédito aparecerá aquí.</div>';
+    return;
+  }
+
+  wrap.innerHTML = vs.map(function(v, i){
+    var pillClass = v.estado === 'en_mora' ? 'mora' : (v.estado === 'finalizado' ? 'done' : 'ok');
+    var pillTxt   = v.estado === 'en_mora'
+      ? (v.diasMora + (v.diasMora === 1 ? ' día en mora' : ' días en mora'))
+      : (v.estado === 'finalizado' ? 'Pagado' : 'Al día');
+
+    var base = (v.capitalFinanciado || 0) + (v.rendimiento || 0);
+    var wCap  = base > 0 ? ((v.capitalRecuperado || 0) / base * 100) : 0;
+    var wYld  = base > 0 ? ((v.rendimiento || 0) / base * 100) : 0;
+
+    return '' +
+      '<div class="veh" data-i="' + i + '" role="button" tabindex="0">' +
+        '<div class="veh-top">' +
+          '<div>' +
+            '<div class="veh-who">' + (v.cliente || '—') + '</div>' +
+            '<div class="veh-id">' + (v.creditId || '') + ' · ' + fmt(v.capitalFinanciado) + '</div>' +
+          '</div>' +
+          '<span class="pill ' + pillClass + '">' + pillTxt + '</span>' +
+        '</div>' +
+        '<div class="veh-bar">' +
+          '<div class="rb-cap" style="width:' + wCap + '%"></div>' +
+          '<div class="rb-yield" style="width:' + wYld + '%"></div>' +
+        '</div>' +
+        '<div class="veh-meta">' +
+          '<span>Recaudado <b>' + fmt(v.recaudado) + '</b></span>' +
+          '<span><b>' + (v.cuotasPagadas || 0) + '/' + (v.plazoTotal || 0) + '</b> cuotas</span>' +
+        '</div>' +
+      '</div>';
+  }).join('');
+
+  Array.prototype.forEach.call(wrap.querySelectorAll('.veh'), function(el){
+    el.addEventListener('click', function(){ openDetail(+el.dataset.i); });
+    el.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openDetail(+el.dataset.i); }
+    });
+  });
+}
+
+// ──────────────────────── DETALLE ────────────────────────
+function openDetail(i){
+  var v = (portafolio.vehiculos || [])[i];
+  if(!v) return;
+
+  document.getElementById('d-cliente').textContent = v.cliente || '—';
+  document.getElementById('d-id').textContent      = (v.creditId || '') + ' · ' + (v.vehiculo || 'Vehículo eléctrico');
+
+  document.getElementById('d-capital').textContent   = fmt(v.capitalFinanciado);
+  document.getElementById('d-recaudado').textContent = fmt(v.recaudado);
+  document.getElementById('d-cap-rec').textContent   = fmt(v.capitalRecuperado);
+  document.getElementById('d-rend').textContent      = fmt(v.rendimiento);
+  document.getElementById('d-falta').textContent     = fmt(v.porCobrar);
+  document.getElementById('d-avance').textContent    = pct(v.porcentajePagado);
+
+  var est = document.getElementById('d-estado');
+  if(v.estado === 'en_mora'){
+    est.textContent = v.diasMora + (v.diasMora === 1 ? ' día en mora' : ' días en mora');
+    est.className = 'row-val red';
+  } else if(v.estado === 'finalizado'){
+    est.textContent = 'Crédito pagado';
+    est.className = 'row-val';
+  } else {
+    est.textContent = 'Al día';
+    est.className = 'row-val';
+  }
+
+  document.getElementById('d-periodicidad').textContent = v.periodicidad === 'mensual' ? 'Mensual' : 'Quincenal';
+  document.getElementById('d-cuotas').textContent = (v.cuotasPagadas || 0) + ' de ' + (v.plazoTotal || 0);
+  document.getElementById('d-proxima').textContent = v.proximaCuota && v.proximaCuota.fecha
+    ? fmt(v.proximaCuota.monto) + ' · ' + v.proximaCuota.fecha
+    : '—';
+  document.getElementById('d-fin').textContent = v.fechaFin || '—';
+
+  var list = document.getElementById('d-cuotas-list');
+  var cs = v.cuotas || [];
+  if(!cs.length){
+    list.innerHTML = '<div class="empty">Aún no hay cuotas registradas.</div>';
+  } else {
+    list.innerHTML = cs.map(function(c){
+      var pagada = c.estado === 'pagada';
+      var vencida = c.estado === 'vencida';
+      var cls = pagada ? 'pagada' : (vencida ? 'vencida' : '');
+      var linea = pagada
+        ? ('Capital ' + fmt(c.capital) + ' · Interés ' + fmt(c.interes))
+        : ('Vence ' + (c.fechaVencimiento || '—'));
+      return '' +
+        '<div class="cuota">' +
+          '<div class="cu-num ' + cls + '">' + c.numeroCuota + '</div>' +
+          '<div class="cu-info">' +
+            '<div class="cu-date">' + (pagada ? ('Pagada ' + (c.fechaPago || '')) : (vencida ? 'Vencida sin pagar' : 'Pendiente')) + '</div>' +
+            '<div class="cu-split">' + linea + '</div>' +
+          '</div>' +
+          '<div class="cu-amt ' + (pagada ? 'pagada' : 'pend') + '">' + fmt(c.montoCuota) + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  show('view-detail');
+}
+
+// ─────────────────────── EVENTOS ───────────────────────
+document.getElementById('btn-login').addEventListener('click', doLogin);
+document.getElementById('btn-logout').addEventListener('click', doLogout);
+document.getElementById('btn-back').addEventListener('click', function(){ show('view-dash'); });
+
+// TODO Oscar: cuando quede definido el mecanismo de recaudo (split de
+// ePayco vs transferencia directa), reemplazar este handler por la
+// llamada real. Hoy abre WhatsApp con el monto exacto ya calculado,
+// que es un flujo que funciona desde el primer dia sin inventar nada.
+document.getElementById('btn-pagar-tribu').addEventListener('click', function(){
+  if(!portafolio) return;
+  var saldo = portafolio.resumen.saldoConTribuGPS || 0;
+  if(saldo <= 0) return;
+  var msg = 'Hola, soy ' + (portafolio.inversionista.nombre || '') +
+    '. Quiero pagar mi saldo de servicio con Tribu GPS por ' + fmt(saldo) + '.';
+  window.open('https://wa.me/573212548620?text=' + encodeURIComponent(msg), '_blank');
+});
+document.getElementById('login-pass').addEventListener('keydown', function(e){ if(e.key === 'Enter') doLogin(); });
+document.getElementById('login-cedula').addEventListener('keydown', function(e){ if(e.key === 'Enter') doLogin(); });
+
+// Sesión recordada
+auth.onAuthStateChanged(async function(user){
+  var saved = localStorage.getItem('vamo_inv_cedula');
+  if(user && saved){
+    loading(true, 'Cargando portafolio...');
+    try{
+      var res = await fetch(N8N_API_BASE + '/portafolio-inversionista?cedula=' + encodeURIComponent(saved));
+      var data = await res.json();
+      if(data && data.inversionista){
+        currentCedula = saved;
+        portafolio = data;
+        renderDashboard(data);
+        show('view-dash');
+      }
+    }catch(e){
+      // Si no se puede cargar, se queda en login — no se muestra un
+      // portafolio a medias con datos viejos.
+    }finally{
+      loading(false);
+    }
+  }
+});
+</script>
+</body>
+</html>
