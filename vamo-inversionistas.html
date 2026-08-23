@@ -97,14 +97,31 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
 
 .section-tag{font-family:'Roboto Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:22px 0 12px;}
 
-/* Nota de retencion en origen. Con split payments el inversionista NO
-   debe nada: su parte le llega directo y lo de Tribu se descuenta en la
-   misma transaccion. Es informativo, no un pasivo. */
-.retencion{display:flex;justify-content:space-between;align-items:center;gap:12px;
-  background:var(--c1);border:1px solid var(--b1);border-left:2px solid var(--gold);
-  border-radius:10px;padding:12px 15px;margin-bottom:20px;}
-.ret-lbl{font-size:11.5px;color:var(--muted);line-height:1.5;}
-.ret-val{font-family:'Roboto Mono',monospace;font-size:14px;font-weight:700;color:var(--muted);white-space:nowrap;}
+/* ===== NOTIFICACIONES ===== */
+.bell-wrap{position:relative;display:inline-flex;}
+.bell{background:none;border:1px solid var(--b1);border-radius:20px;width:34px;height:30px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;
+  color:var(--muted);transition:all .2s;padding:0;}
+.bell:hover{border-color:var(--gold-border);color:var(--gold);}
+.bell-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;
+  border-radius:9px;background:var(--gold);color:#000;font-size:9.5px;font-weight:900;
+  display:none;align-items:center;justify-content:center;font-family:'Roboto Mono',monospace;}
+.bell-badge.on{display:flex;}
+.topbar-actions{display:flex;align-items:center;gap:10px;}
+
+.notif{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--b1);}
+.notif:last-child{border-bottom:none;}
+.notif.nueva{background:linear-gradient(90deg,rgba(242,107,69,.06),transparent);
+  margin:0 -15px;padding-left:15px;padding-right:15px;}
+.n-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-size:14px;flex-shrink:0;background:var(--c2);}
+.n-icon.pago{background:rgba(79,191,139,.13);}
+.n-icon.mora{background:rgba(224,92,92,.13);}
+.n-icon.alerta{background:rgba(242,107,69,.13);}
+.n-body{flex:1;min-width:0;}
+.n-titulo{font-size:13.5px;font-weight:700;letter-spacing:-.2px;}
+.n-msg{font-size:12px;color:var(--muted);line-height:1.6;margin-top:3px;}
+.n-meta{font-family:'Roboto Mono',monospace;font-size:10px;color:var(--muted2);margin-top:5px;}
 
 /* ===== TABLA DE VEHICULOS =====
    Grid en vez de <table> para que colapse bien en pantallas angostas
@@ -152,8 +169,8 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
 .veh-meta b{color:var(--wh);font-weight:600;}
 
 /* ===== DETALLE ===== */
-#view-detail{padding:0;flex:1;display:none;flex-direction:column;}
-#view-detail.active{display:flex;}
+#view-detail,#view-notifs{padding:0;flex:1;display:none;flex-direction:column;}
+#view-detail.active,#view-notifs.active{display:flex;}
 .back-link{font-size:12px;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:none;border:none;font-family:'Roboto',sans-serif;padding:0;}
 .back-link:hover{color:var(--wh);}
 .det-head{padding:18px 22px;border-bottom:1px solid var(--b1);}
@@ -227,7 +244,13 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
   <div id="view-dash">
     <div class="dash-topbar">
       <div class="dash-greet">Hola, <span id="inv-nombre">—</span></div>
-      <button class="dash-logout" id="btn-logout">Salir</button>
+      <div class="topbar-actions">
+        <span class="bell-wrap">
+          <button class="bell" id="btn-bell" aria-label="Notificaciones">🔔</button>
+          <span class="bell-badge" id="bell-badge">0</span>
+        </span>
+        <button class="dash-logout" id="btn-logout">Salir</button>
+      </div>
     </div>
 
     <div class="dash-body">
@@ -284,18 +307,23 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
         </div>
       </div>
 
-      <div class="retencion">
-        <div class="ret-lbl">Servicio Tribu GPS descontado en origen<br>
-          <span style="color:var(--muted2);font-size:10.5px">GPS, seguro y pasarela. No pasa por tu cuenta ni lo debes.</span>
-        </div>
-        <div class="ret-val" id="k-tribu">$0</div>
-      </div>
-
       <div class="section-tag">Vehículos financiados</div>
       <div class="tabla" id="veh-tabla"></div>
 
     </div>
     <div class="legal">vamo es una marca operada por Tribu GPS SAS · NIT 901.356.553-8</div>
+  </div>
+
+  <!-- ===== NOTIFICACIONES ===== -->
+  <div id="view-notifs">
+    <div class="det-head">
+      <button class="back-link" id="btn-back-notifs">← Volver al portafolio</button>
+      <div class="det-title">Notificaciones</div>
+      <div class="det-id" id="n-count">—</div>
+    </div>
+    <div class="det-body">
+      <div class="row-list" id="notif-list"></div>
+    </div>
   </div>
 
   <!-- ===== DETALLE DE VEHÍCULO ===== -->
@@ -354,7 +382,7 @@ var portafolio = null;
 function fmt(n){ return '$' + Math.round(n || 0).toLocaleString('es-CO'); }
 function pct(n){ return (Math.round((n || 0) * 10) / 10).toLocaleString('es-CO') + '%'; }
 function show(id){
-  ['view-login','view-dash','view-detail'].forEach(function(v){
+  ['view-login','view-dash','view-detail','view-notifs'].forEach(function(v){
     document.getElementById(v).classList.toggle('active', v === id);
   });
   window.scrollTo(0,0);
@@ -443,7 +471,6 @@ function renderDashboard(d){
   document.getElementById('k-por-cobrar').textContent = fmt(
     Math.max(0, (r.capitalDesplegado || 0) + (r.rendimientoPactado || 0) - recibido)
   );
-  document.getElementById('k-tribu').textContent = fmt(r.servicioTribuGPS);
   document.getElementById('k-cuotas-pagadas').textContent = (r.cuotasPagadas || 0) + ' cuotas cobradas';
   document.getElementById('k-cuotas-faltan').textContent  = (r.cuotasRestantes || 0) + ' cuotas pendientes';
 
@@ -462,8 +489,72 @@ function renderDashboard(d){
   }
 
   renderVehiculos(d.vehiculos || []);
+  renderNotificaciones(d.notificaciones || []);
 }
 
+
+// ── NOTIFICACIONES ─────────────────────────────────────
+// El "no leído" se resuelve del lado del cliente: se guarda la fecha de
+// la última vez que abrió la campana. Evita necesitar un endpoint de
+// escritura solo para marcar como leído. Contra: si entra desde otro
+// dispositivo, el contador se reinicia. Suficiente para esta versión.
+var LAST_SEEN_KEY = 'vamo_inv_notifs_vistas';
+
+function parseFechaNotif(s){
+  var m = (s || '').toString().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if(!m) return 0;
+  return new Date(+m[3], +m[2]-1, +m[1], +(m[4]||0), +(m[5]||0)).getTime();
+}
+
+function iconoDe(tipo){
+  var t = (tipo || '').toLowerCase();
+  if(t.indexOf('pago') === 0)  return { cls:'pago',   ico:'✓' };
+  if(t.indexOf('mora') === 0)  return { cls:'mora',   ico:'⚠' };
+  if(t.indexOf('alerta') === 0)return { cls:'alerta', ico:'!' };
+  return { cls:'', ico:'•' };
+}
+
+function renderNotificaciones(ns){
+  var lastSeen = parseInt(localStorage.getItem(LAST_SEEN_KEY) || '0', 10);
+  var nuevas = ns.filter(function(n){ return parseFechaNotif(n.fecha) > lastSeen; }).length;
+
+  var badge = document.getElementById('bell-badge');
+  badge.textContent = nuevas > 9 ? '9+' : nuevas;
+  badge.classList.toggle('on', nuevas > 0);
+
+  var wrap = document.getElementById('notif-list');
+  document.getElementById('n-count').textContent =
+    ns.length ? (ns.length + (ns.length === 1 ? ' notificación' : ' notificaciones')) : '';
+
+  if(!ns.length){
+    wrap.innerHTML = '<div class="empty">No tienes notificaciones todavía.<br>' +
+      'Aquí verás los pagos de tus clientes y novedades de tus vehículos.</div>';
+    return;
+  }
+
+  wrap.innerHTML = ns.map(function(n){
+    var ic = iconoDe(n.tipo);
+    var esNueva = parseFechaNotif(n.fecha) > lastSeen;
+    return '' +
+      '<div class="notif' + (esNueva ? ' nueva' : '') + '">' +
+        '<div class="n-icon ' + ic.cls + '">' + ic.ico + '</div>' +
+        '<div class="n-body">' +
+          '<div class="n-titulo">' + (n.titulo || 'Novedad') + '</div>' +
+          (n.mensaje ? '<div class="n-msg">' + n.mensaje + '</div>' : '') +
+          '<div class="n-meta">' + (n.fecha || '') +
+            (n.creditId ? ' · ' + n.creditId : '') + '</div>' +
+        '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function abrirNotificaciones(){
+  show('view-notifs');
+  // Al abrir, todo queda visto: se apaga el badge y se re-renderiza para
+  // que el resaltado de "nueva" no quede pegado al volver.
+  localStorage.setItem(LAST_SEEN_KEY, String(Date.now()));
+  document.getElementById('bell-badge').classList.remove('on');
+}
 
 function renderVehiculos(vs){
   var wrap = document.getElementById('veh-tabla');
@@ -593,6 +684,11 @@ function openDetail(i){
 document.getElementById('btn-login').addEventListener('click', doLogin);
 document.getElementById('btn-logout').addEventListener('click', doLogout);
 document.getElementById('btn-back').addEventListener('click', function(){ show('view-dash'); });
+document.getElementById('btn-bell').addEventListener('click', abrirNotificaciones);
+document.getElementById('btn-back-notifs').addEventListener('click', function(){
+  show('view-dash');
+  if(portafolio) renderNotificaciones(portafolio.notificaciones || []);
+});
 
 document.getElementById('login-pass').addEventListener('keydown', function(e){ if(e.key === 'Enter') doLogin(); });
 document.getElementById('login-cedula').addEventListener('keydown', function(e){ if(e.key === 'Enter') doLogin(); });
