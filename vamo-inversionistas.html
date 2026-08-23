@@ -32,7 +32,7 @@
 html{background:#080D14;}
 body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-height:100vh;
   background-image:radial-gradient(ellipse 80% 40% at 50% -5%,rgba(242,107,69,.06) 0%,transparent 55%);}
-.shell{max-width:540px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+.shell{max-width:720px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
 
 .hero{padding:32px 22px 20px;text-align:center;position:relative;}
 .hero::after{content:'';position:absolute;bottom:0;left:10%;right:10%;height:1px;background:linear-gradient(to right,transparent,var(--gold-border),transparent);}
@@ -97,17 +97,40 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
 
 .section-tag{font-family:'Roboto Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:22px 0 12px;}
 
-/* Deuda con Tribu GPS -- es un pasivo del inversionista, no una
-   retencion: el cliente le paga el 100% a el, y el nos gira el servicio. */
-.debt-card{background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:14px;padding:16px 17px;margin-bottom:6px;}
-.debt-amount{font-size:26px;font-weight:900;letter-spacing:-.8px;color:var(--gold);margin:4px 0 2px;}
-.btn-debt{width:100%;margin-top:13px;padding:12px;background:var(--gold);border:none;border-radius:9px;color:#000;font-size:13.5px;font-weight:900;cursor:pointer;font-family:'Roboto',sans-serif;letter-spacing:.3px;transition:all .2s;}
-.btn-debt:hover{background:var(--gold2);transform:translateY(-1px);}
-.btn-debt:disabled{background:var(--c3);color:var(--muted2);cursor:default;transform:none;}
-.liq-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);font-size:12px;}
-.liq-item:last-child{border-bottom:none;}
-.liq-date{color:var(--muted);font-family:'Roboto Mono',monospace;font-size:11px;}
-.liq-amt{font-family:'Roboto Mono',monospace;font-weight:700;color:var(--green);}
+/* Nota de retencion en origen. Con split payments el inversionista NO
+   debe nada: su parte le llega directo y lo de Tribu se descuenta en la
+   misma transaccion. Es informativo, no un pasivo. */
+.retencion{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  background:var(--c1);border:1px solid var(--b1);border-left:2px solid var(--gold);
+  border-radius:10px;padding:12px 15px;margin-bottom:20px;}
+.ret-lbl{font-size:11.5px;color:var(--muted);line-height:1.5;}
+.ret-val{font-family:'Roboto Mono',monospace;font-size:14px;font-weight:700;color:var(--muted);white-space:nowrap;}
+
+/* ===== TABLA DE VEHICULOS =====
+   Grid en vez de <table> para que colapse bien en pantallas angostas
+   sin scroll horizontal. */
+.tabla{background:var(--c1);border:1px solid var(--b1);border-radius:14px;overflow:hidden;}
+.t-head,.t-row{display:grid;grid-template-columns:1.6fr .9fr 1fr .7fr;gap:10px;align-items:center;padding:12px 15px;}
+.t-head{background:rgba(255,255,255,.03);border-bottom:1px solid var(--b1);}
+.t-head span{font-family:'Roboto Mono',monospace;font-size:9px;letter-spacing:1px;
+  color:var(--muted2);text-transform:uppercase;}
+.t-head span:nth-child(2),.t-head span:nth-child(3){text-align:right;}
+.t-head span:nth-child(4){text-align:right;}
+.t-row{border-bottom:1px solid var(--b1);cursor:pointer;transition:background .15s;}
+.t-row:last-child{border-bottom:none;}
+.t-row:hover{background:rgba(242,107,69,.05);}
+.t-cliente{font-size:13.5px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.t-sub{font-family:'Roboto Mono',monospace;font-size:10px;color:var(--muted2);margin-top:2px;}
+.t-num{font-family:'Roboto Mono',monospace;font-size:12.5px;font-weight:600;text-align:right;}
+.t-num.blue{color:var(--blue);}
+.t-prog{text-align:right;}
+.t-prog-bar{height:5px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:5px;display:flex;}
+.t-pct{font-family:'Roboto Mono',monospace;font-size:11.5px;color:var(--muted);}
+.t-estado{text-align:right;}
+@media (max-width:520px){
+  .t-head,.t-row{grid-template-columns:1.5fr 1fr .8fr;}
+  .t-head span:nth-child(3),.t-row .t-prog{display:none;}
+}
 
 /* Alerta de mora en portafolio */
 .mora-alert{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.35);border-radius:14px;padding:14px 16px;margin-bottom:16px;}
@@ -250,28 +273,26 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
           <div class="kpi-foot" id="k-roi-proy-foot">Si todos pagan completo</div>
         </div>
         <div class="kpi">
-          <div class="kpi-lbl">Total recaudado</div>
+          <div class="kpi-lbl">Recibido a la fecha</div>
           <div class="kpi-val" id="k-recaudado">$0</div>
           <div class="kpi-foot" id="k-cuotas-pagadas">0 cuotas cobradas</div>
         </div>
         <div class="kpi">
-          <div class="kpi-lbl">Falta por cobrar</div>
+          <div class="kpi-lbl">Por recibir</div>
           <div class="kpi-val" id="k-por-cobrar">$0</div>
           <div class="kpi-foot" id="k-cuotas-faltan">0 cuotas pendientes</div>
         </div>
       </div>
 
-      <div class="debt-card" id="debt-card">
-        <div class="kpi-lbl" style="color:var(--gold)">Le debes a Tribu GPS</div>
-        <div class="debt-amount" id="k-tribu">$0</div>
-        <div class="kpi-foot" id="k-tribu-foot">GPS, seguro y pasarela cobrados dentro de las cuotas que ya recibiste.</div>
-        <button class="btn-debt" id="btn-pagar-tribu">Pagar a Tribu GPS</button>
+      <div class="retencion">
+        <div class="ret-lbl">Servicio Tribu GPS descontado en origen<br>
+          <span style="color:var(--muted2);font-size:10.5px">GPS, seguro y pasarela. No pasa por tu cuenta ni lo debes.</span>
+        </div>
+        <div class="ret-val" id="k-tribu">$0</div>
       </div>
 
-      <div id="liq-wrap"></div>
-
       <div class="section-tag">Vehículos financiados</div>
-      <div id="veh-list"></div>
+      <div class="tabla" id="veh-tabla"></div>
 
     </div>
     <div class="legal">vamo es una marca operada por Tribu GPS SAS · NIT 901.356.553-8</div>
@@ -414,22 +435,15 @@ function renderDashboard(d){
 
   document.getElementById('k-roi-real').textContent   = pct(r.roiRealizado);
   document.getElementById('k-roi-proy').textContent   = pct(r.roiProyectado);
-  document.getElementById('k-recaudado').textContent  = fmt(r.totalRecaudado);
-  document.getElementById('k-por-cobrar').textContent = fmt(r.porCobrar);
-  document.getElementById('k-tribu').textContent = fmt(r.saldoConTribuGPS);
-  var btnDebt = document.getElementById('btn-pagar-tribu');
-  if((r.saldoConTribuGPS || 0) <= 0){
-    btnDebt.disabled = true;
-    btnDebt.textContent = 'Estás al día con Tribu GPS';
-    document.getElementById('k-tribu-foot').textContent = 'No tienes saldo pendiente por el servicio.';
-  } else {
-    btnDebt.disabled = false;
-    btnDebt.textContent = 'Pagar a Tribu GPS';
-    document.getElementById('k-tribu-foot').textContent =
-      'De ' + fmt(r.servicioTribuGPS) + ' generados, ya giraste ' + fmt(r.yaLiquidado) + '.';
-  }
-
-  renderLiquidaciones(d.liquidaciones || []);
+  // Con split, al inversionista le llega SOLO su parte -- el servicio de
+  // Tribu GPS se descuenta en la misma transaccion y nunca pasa por su
+  // cuenta. Mostrar el bruto cobrado al cliente seria inflar su retorno.
+  var recibido = (r.capitalRecuperado || 0) + (r.rendimientoGenerado || 0);
+  document.getElementById('k-recaudado').textContent  = fmt(recibido);
+  document.getElementById('k-por-cobrar').textContent = fmt(
+    Math.max(0, (r.capitalDesplegado || 0) + (r.rendimientoPactado || 0) - recibido)
+  );
+  document.getElementById('k-tribu').textContent = fmt(r.servicioTribuGPS);
   document.getElementById('k-cuotas-pagadas').textContent = (r.cuotasPagadas || 0) + ' cuotas cobradas';
   document.getElementById('k-cuotas-faltan').textContent  = (r.cuotasRestantes || 0) + ' cuotas pendientes';
 
@@ -450,57 +464,63 @@ function renderDashboard(d){
   renderVehiculos(d.vehiculos || []);
 }
 
-function renderLiquidaciones(ls){
-  var wrap = document.getElementById('liq-wrap');
-  if(!ls.length){ wrap.innerHTML = ''; return; }
-  wrap.innerHTML =
-    '<div class="section-tag">Pagos que le has hecho a Tribu GPS</div>' +
-    '<div class="row-list">' + ls.map(function(l){
-      return '<div class="liq-item">' +
-        '<div><div>' + (l.metodo || 'Pago') + '</div>' +
-        '<div class="liq-date">' + (l.fecha || '') + '</div></div>' +
-        '<div class="liq-amt">' + fmt(l.monto) + '</div></div>';
-    }).join('') + '</div>';
-}
 
 function renderVehiculos(vs){
-  var wrap = document.getElementById('veh-list');
+  var wrap = document.getElementById('veh-tabla');
   if(!vs.length){
-    wrap.innerHTML = '<div class="empty">Todavía no tienes vehículos financiados.<br>Cuando desembolses tu primer crédito aparecerá aquí.</div>';
+    wrap.innerHTML = '<div class="empty">Todavía no tienes vehículos financiados.<br>' +
+      'Cuando desembolses tu primer crédito aparecerá aquí.</div>';
     return;
   }
 
-  wrap.innerHTML = vs.map(function(v, i){
-    var pillClass = v.estado === 'en_mora' ? 'mora' : (v.estado === 'finalizado' ? 'done' : 'ok');
-    var pillTxt   = v.estado === 'en_mora'
-      ? (v.diasMora + (v.diasMora === 1 ? ' día en mora' : ' días en mora'))
-      : (v.estado === 'finalizado' ? 'Pagado' : 'Al día');
+  var head =
+    '<div class="t-head">' +
+      '<span>Cliente</span>' +
+      '<span>Recibido</span>' +
+      '<span>Avance</span>' +
+      '<span>Estado</span>' +
+    '</div>';
 
-    var base = (v.capitalFinanciado || 0) + (v.rendimiento || 0);
-    var wCap  = base > 0 ? ((v.capitalRecuperado || 0) / base * 100) : 0;
-    var wYld  = base > 0 ? ((v.rendimiento || 0) / base * 100) : 0;
+  var filas = vs.map(function(v, i){
+    var esMora = v.estado === 'en_mora';
+    var esFin  = v.estado === 'finalizado';
+    var pillClass = esMora ? 'mora' : (esFin ? 'done' : 'ok');
+    var pillTxt   = esMora
+      ? (v.diasMora + (v.diasMora === 1 ? 'd mora' : 'd mora'))
+      : (esFin ? 'Pagado' : 'Al día');
+
+    // Lo que este vehiculo le ha devuelto: capital + rendimiento.
+    // NO el bruto cobrado al cliente -- esa parte incluye el servicio de
+    // Tribu GPS, que con split nunca llega a su cuenta.
+    var recibido = (v.capitalRecuperado || 0) + (v.rendimiento || 0);
+    var meta = (v.capitalFinanciado || 0) + (v.rendimientoPactado || 0);
+    var avance = meta > 0 ? Math.min(100, recibido / meta * 100) : 0;
+
+    var wCap = meta > 0 ? ((v.capitalRecuperado || 0) / meta * 100) : 0;
+    var wRnd = meta > 0 ? ((v.rendimiento || 0) / meta * 100) : 0;
 
     return '' +
-      '<div class="veh" data-i="' + i + '" role="button" tabindex="0">' +
-        '<div class="veh-top">' +
-          '<div>' +
-            '<div class="veh-who">' + (v.cliente || '—') + '</div>' +
-            '<div class="veh-id">' + (v.creditId || '') + ' · ' + fmt(v.capitalFinanciado) + '</div>' +
+      '<div class="t-row" data-i="' + i + '" role="button" tabindex="0">' +
+        '<div>' +
+          '<div class="t-cliente">' + (v.cliente || '—') + '</div>' +
+          '<div class="t-sub">' + (v.creditId || '') + ' · ' + fmt(v.capitalFinanciado) + '</div>' +
+        '</div>' +
+        '<div class="t-num blue">' + fmt(recibido) + '</div>' +
+        '<div class="t-prog">' +
+          '<div class="t-pct">' + Math.round(avance) + '% · ' +
+            (v.cuotasPagadas || 0) + '/' + (v.plazoTotal || 0) + '</div>' +
+          '<div class="t-prog-bar">' +
+            '<div class="rb-cap" style="width:' + wCap + '%"></div>' +
+            '<div class="rb-yield" style="width:' + wRnd + '%"></div>' +
           '</div>' +
-          '<span class="pill ' + pillClass + '">' + pillTxt + '</span>' +
         '</div>' +
-        '<div class="veh-bar">' +
-          '<div class="rb-cap" style="width:' + wCap + '%"></div>' +
-          '<div class="rb-yield" style="width:' + wYld + '%"></div>' +
-        '</div>' +
-        '<div class="veh-meta">' +
-          '<span>Recaudado <b>' + fmt(v.recaudado) + '</b></span>' +
-          '<span><b>' + (v.cuotasPagadas || 0) + '/' + (v.plazoTotal || 0) + '</b> cuotas</span>' +
-        '</div>' +
+        '<div class="t-estado"><span class="pill ' + pillClass + '">' + pillTxt + '</span></div>' +
       '</div>';
   }).join('');
 
-  Array.prototype.forEach.call(wrap.querySelectorAll('.veh'), function(el){
+  wrap.innerHTML = head + filas;
+
+  Array.prototype.forEach.call(wrap.querySelectorAll('.t-row'), function(el){
     el.addEventListener('click', function(){ openDetail(+el.dataset.i); });
     el.addEventListener('keydown', function(e){
       if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openDetail(+el.dataset.i); }
@@ -574,18 +594,6 @@ document.getElementById('btn-login').addEventListener('click', doLogin);
 document.getElementById('btn-logout').addEventListener('click', doLogout);
 document.getElementById('btn-back').addEventListener('click', function(){ show('view-dash'); });
 
-// TODO Oscar: cuando quede definido el mecanismo de recaudo (split de
-// ePayco vs transferencia directa), reemplazar este handler por la
-// llamada real. Hoy abre WhatsApp con el monto exacto ya calculado,
-// que es un flujo que funciona desde el primer dia sin inventar nada.
-document.getElementById('btn-pagar-tribu').addEventListener('click', function(){
-  if(!portafolio) return;
-  var saldo = portafolio.resumen.saldoConTribuGPS || 0;
-  if(saldo <= 0) return;
-  var msg = 'Hola, soy ' + (portafolio.inversionista.nombre || '') +
-    '. Quiero pagar mi saldo de servicio con Tribu GPS por ' + fmt(saldo) + '.';
-  window.open('https://wa.me/573212548620?text=' + encodeURIComponent(msg), '_blank');
-});
 document.getElementById('login-pass').addEventListener('keydown', function(e){ if(e.key === 'Enter') doLogin(); });
 document.getElementById('login-cedula').addEventListener('keydown', function(e){ if(e.key === 'Enter') doLogin(); });
 
