@@ -352,7 +352,7 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
         <div class="row"><span class="row-lbl">Cierre del crédito</span><span class="row-val" id="d-fin">—</span></div>
       </div>
 
-      <div class="section-tag">Historial de cuotas</div>
+      <div class="section-tag">Cuotas · lo que recibes tú</div>
       <div class="row-list" id="d-cuotas-list"></div>
 
     </div>
@@ -659,20 +659,41 @@ function openDetail(i){
     list.innerHTML = '<div class="empty">Aún no hay cuotas registradas.</div>';
   } else {
     list.innerHTML = cs.map(function(c){
-      var pagada = c.estado === 'pagada';
+      var pagada  = c.estado === 'pagada';
       var vencida = c.estado === 'vencida';
       var cls = pagada ? 'pagada' : (vencida ? 'vencida' : '');
-      var linea = pagada
-        ? ('Capital ' + fmt(c.capital) + ' · Interés ' + fmt(c.interes))
-        : ('Vence ' + (c.fechaVencimiento || '—'));
+
+      // El monto grande es SIEMPRE lo que le corresponde al inversionista,
+      // nunca el Cuota_Total del financiado: ese incluye el servicio de
+      // Tribu GPS y hacía creer que toda esa plata era suya.
+      var titulo = pagada
+        ? ('Recibiste ' + fmt(c.recibido))
+        : (c.recibido > 0
+            ? ('Abono recibido ' + fmt(c.recibido))
+            : (vencida ? 'Vencida sin pagar' : 'Pendiente'));
+
+      var detalle;
+      if (c.todoParaTi) {
+        detalle = '<span style="color:var(--blue)">El financiado aún no completa la cuota — ' +
+                  'el 100% de lo que abonó es tuyo. Tribu GPS no recibe nada hasta que la complete.</span>' +
+                  '<br>Te faltan ' + fmt(c.faltaParaTuParte) + ' de tu parte (' + fmt(c.tuParte) + ')';
+      } else if (pagada) {
+        detalle = 'Tu parte de esta cuota · el financiado pagó ' + fmt(c.montoCuotaCliente);
+      } else {
+        detalle = 'Tu parte será ' + fmt(c.tuParte) + ' · vence ' + (c.fechaVencimiento || '—');
+      }
+
+      var montoGrande = c.recibido > 0 ? c.recibido : c.tuParte;
+
       return '' +
         '<div class="cuota">' +
           '<div class="cu-num ' + cls + '">' + c.numeroCuota + '</div>' +
           '<div class="cu-info">' +
-            '<div class="cu-date">' + (pagada ? ('Pagada ' + (c.fechaPago || '')) : (vencida ? 'Vencida sin pagar' : 'Pendiente')) + '</div>' +
-            '<div class="cu-split">' + linea + '</div>' +
+            '<div class="cu-date">' + titulo +
+              (pagada && c.fechaPago ? ' · ' + c.fechaPago : '') + '</div>' +
+            '<div class="cu-split">' + detalle + '</div>' +
           '</div>' +
-          '<div class="cu-amt ' + (pagada ? 'pagada' : 'pend') + '">' + fmt(c.montoCuota) + '</div>' +
+          '<div class="cu-amt ' + (c.recibido > 0 ? 'pagada' : 'pend') + '">' + fmt(montoGrande) + '</div>' +
         '</div>';
     }).join('');
   }
