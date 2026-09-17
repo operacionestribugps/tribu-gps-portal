@@ -210,9 +210,23 @@ body{background:var(--bg);font-family:'Roboto',sans-serif;color:var(--wh);min-he
 .load-txt{font-family:'Roboto Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px;}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+
+/* Volver al inicio. Flotante arriba-izquierda: no compite con el
+   contenido y queda igual en todas las paginas del ecosistema. */
+.btn-inicio{position:fixed;top:14px;left:14px;z-index:150;
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 13px;border-radius:20px;text-decoration:none;
+  background:rgba(13,20,29,.82);border:1px solid rgba(255,255,255,.12);
+  color:#8593A2;font-family:'Roboto',sans-serif;font-size:11.5px;font-weight:500;
+  backdrop-filter:blur(8px);transition:all .2s;}
+.btn-inicio:hover{color:#F26B45;border-color:rgba(242,107,69,.4);}
+.btn-inicio span{font-size:13px;line-height:1;}
+@media (max-width:420px){.btn-inicio{font-size:10.5px;padding:7px 11px;}}
 </style>
 </head>
 <body>
+<a class="btn-inicio" href="https://tribu-gps-credito.vercel.app/" aria-label="Volver al inicio"><span>←</span> Inicio</a>
+
 
 <div class="load" id="loading"><div class="spin"></div><div class="load-txt" id="load-txt">Cargando portafolio...</div></div>
 
